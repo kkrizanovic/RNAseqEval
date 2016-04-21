@@ -1,0 +1,3 @@
+[submodule "samscripts"]
+	path = samscripts
+	url = https://github.com/isovic/samscripts.git
