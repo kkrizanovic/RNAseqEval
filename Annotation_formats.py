@@ -83,7 +83,7 @@ class GeneDescription:
 
         return count
 
-    def basesInsideItems(self, startpos, endpos):
+    def insideItems(self, startpos, endpos):
         for item in self.items:
             if item.insideItem(startpos, endpos):
                 return True
