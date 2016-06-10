@@ -6,6 +6,12 @@ GFF_STRANDFW = '+'
 GFF_STRANDRV = '-'
 GFF_FRAME = [0, 1, 2]
 
+# While calculating operations on intervals (genes, exons and read mappings)
+# some inaccuracy will be allowed. This will have different impact on different operations.
+# i.e. For two intervals to overlap, they will have to overlap on at least ALLOWED_INACCURACY bases.
+
+DEFAULT_ALLOWED_INACCURACY = 5
+
 
 class GeneItem:
     def __init__(self):
@@ -17,28 +23,85 @@ class GeneItem:
     def getLength(self):
         return self.end - self.start
 
-    def insideItem(self, startpos, endpos):
-        if startpos >= self.start and endpos <= self.end:
-            return True
-        else:
-            return False
-
-    # this implementation of overlap, will include inside
-    def overlapsItem(self, startpos, endpos):
-        if endpos <= self.start or startpos >= self.end:
+    def isValidInterval(self):
+        if self.start >= self.end:
             return False
         else:
             return True
 
+    # Returns true if a given interval (startpos, endpos) is inside a GeneItem (exon)
+    # The interval can extend outside GeneItem at most allowed_inacc bases
+    def insideItem(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
+        if (startpos >= self.start - allowed_inacc) and (endpos <= self.end + allowed_inacc):
+            return True
+        else:
+            return False
+
+    # Returns true if a given interval (startpos, endpos) matches a GeneItem (exon)
+    # The interval start and and can differ from GeneItems start and end by
+    # at most allowed_inacc bases
+    def equalsItem(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
+        if startpos < self.start - allowed_inacc:
+            return False
+        if startpos > self.start + allowed_inacc:
+            return False
+        if endpos < self.end - allowed_inacc:
+            return False
+        if endpos > self.end + allowed_inacc:
+            return False
+
+        return True
+
+    # Returns true if a given interval (startpos, endpos) and a GeneItem (exon)
+    # start at the same position (within allowed_inacc)
+    # NOTE: Consider if it might be usefull to also look at the end of the interval
+    def startsItem(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
+        if startpos < self.start - allowed_inacc:
+            return False
+        if startpos > self.start + allowed_inacc:
+            return False
+
+        return True
+
+    # Returns true if a given interval (startpos, endpos) and a GeneItem (exon)
+    # end at the same position (within allowed_inacc)
+    # NOTE: Consider if it might be usefull to also look at the start of the interval
+    def endsItem(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
+        if endpos < self.end - allowed_inacc:
+            return False
+        if endpos > self.end + allowed_inacc:
+            return False
+
+        return True
+
+
+    # Returns true if a given interval (startpos, endpos) overlaps a GeneItem (exon)
+    # The ovelap size must be at least allowed_inacc bases
+    # This implementation of overlap, will include inside
+    def overlapsItem(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
+        if (endpos <= self.start + allowed_inacc) or (startpos >= self.end - allowed_inacc):
+            return False
+        else:
+            return True
+
+
+    # Returns a number of bases by which a given interval and a GeneItem ovelap
     def basesInside(self, startpos, endpos):
         count = 0
-        if self.insideItem(startpos, endpos):
-            count = startpos - endpos
-        elif self.overlapsItem(startpos, endpos):
-            if endpos < self.end:
-                count = endpos - self.start
-            if startpos > self.start:
-                count = self.end - startpos
+
+        if startpos > self.start:
+            maxstart = startpos
+        else:
+            maxstart = self.start
+
+        if endpos < self.end:
+            minend = endpos
+        else:
+            minend = self.end
+
+        count = minend - maxstart
+        if count < 0:
+            count = 0
 
         return count
 
@@ -73,26 +136,33 @@ class GeneDescription:
 
     def basesInsideGene(self, startpos, endpos):
         count = 0
-        if self.insideGene(startpos, endpos):
-            count = startpos - endpos
-        elif self.overlapsGene(startpos, endpos):
-            if endpos < self.end:
-                count = endpos - self.start
-            if startpos > self.start:
-                count = self.end - startpos
+
+        if startpos > self.start:
+            maxstart = startpos
+        else:
+            maxstart = self.start
+
+        if endpos < self.end:
+            minend = endpos
+        else:
+            minend = self.end
+
+        count = minend - maxstart
+        if count < 0:
+            count = 0
 
         return count
 
-    def insideItems(self, startpos, endpos):
+    def insideItems(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
         for item in self.items:
-            if item.insideItem(startpos, endpos):
+            if item.insideItem(startpos, endpos, allowed_inacc):
                 return True
 
         return False
 
-    def overlapsItems(self, startpos, endpos):
+    def overlapsItems(self, startpos, endpos, allowed_inacc = DEFAULT_ALLOWED_INACCURACY):
         for item in self.items:
-            if item.overlapsItem(startpos, endpos):
+            if item.overlapsItem(startpos, endpos, allowed_inacc):
                 return True
 
     def basesInsideItems(self, startpos, endpos):
