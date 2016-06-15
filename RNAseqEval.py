@@ -164,11 +164,29 @@ def join_split_alignment(samline_list, samline):
 
 
 
-def load_and_process_SAM(sam_file, paramdict, report):
+def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
     # Loading SAM file into hash
     # Keeping only SAM lines with regular CIGAR string, and sorting them according to position
     qnames_with_multiple_alignments = {}
     [sam_hash, sam_hash_num_lines, sam_hash_num_unique_lines] = utility_sam.HashSAMWithFilter(sam_file, qnames_with_multiple_alignments)
+
+    # If variable BBMapFormat is set to true, all samfiles referring too the same query will be collected together
+    # Stil have to decide what to do with query names
+    if BBMapFormat:
+        new_sam_hash = {}
+        for (qname, sam_lines) in sam_hash.iteritems():
+            pos = qname.find('_part')
+            if pos > -1:
+                origQname = qname[:pos]
+            else:
+                origQname = qname
+            if origQname not in new_sam_hash:
+                new_sam_hash[origQname] = sam_lines
+            else:
+                new_sam_lines = sam_lines + new_sam_hash[origQname]
+                new_sam_hash[origQname] = new_sam_lines
+
+        sam_hash = new_sam_hash
 
     # Reorganizing SAM lines, removing unmapped queries, leaving only the first alignment and
     # other alignments that possibly costitute a split alignment together with the first one

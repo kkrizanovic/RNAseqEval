@@ -30,7 +30,7 @@ def processData(datafolder, resultfile, annotationfile):
     paramdict = {}
 
     sys.stderr.write('\n(%s) Loading and processing SAM file with mappings ... ' % datetime.now().time().isoformat())
-    all_sam_lines = RNAseqEval.load_and_process_SAM(resultfile, paramdict, report)
+    all_sam_lines = RNAseqEval.load_and_process_SAM(resultfile, paramdict, report, BBMapFormat = True)
 
 
     # Reading annotation file
@@ -70,22 +70,30 @@ def processData(datafolder, resultfile, annotationfile):
     s_num_badchrom_alignments = 0
 
     s_maf_suspicious_alignments = 0
-    s_maf_bad_slignments = 0
+    s_maf_bad_alignments = 0
     s_maf_good_alignments = 0
+
+    s_maf_split_reads = 0
+    s_maf_good_split_alignments = 0
+    s_maf_bad_split_alignments = 0
 
     s_num_potential_bad_strand = 0
 
     # All samlines in a list should have the same query name
     for samline_list in all_sam_lines:
         qname = samline_list[0].qname
+        isSplitAlignment = False
 
         if len(samline_list) > 1:
             s_num_split_alignment += 1
+            isSplitAlignment = True
 
         # Checking the SAM file if all samlines in a list have the same qname
         for samline in samline_list[1:]:
             if samline.qname != qname:
                 sys.stderr.write('\nWARNING: two samlines in the same list with different query names (%s/%s)' % (qname, samline.qname))
+                import pdb
+                pdb.set_trace()
 
         # Look for the first underscore in query name
         # Everything before that is the simulation folder name
@@ -101,10 +109,16 @@ def processData(datafolder, resultfile, annotationfile):
         simQName = qname[pos+1:]
 
         pos = simQName.find('_')
+        pos2 = simQName.find('_part')
         if pos < 0:
             raise Exception('Invalid simulated query name in results file (%s)!' % simQName)
 
         simQLetter = simQName[0]       # Should always be S
+
+        # BBMap separates a query into smaller parts he can managed
+        # Extends query with '_part_#', which has to be ignored
+        if pos2 <> -1:
+            simQName = simQName[:pos2]
         simRefNumber = int(simQName[1:pos])
         simQNumber = int(simQName[pos+1:])
         simFileName = 'sd_%04d' % simRefNumber
@@ -193,6 +207,10 @@ def processData(datafolder, resultfile, annotationfile):
             # Start position should only be considered for the first exon
             maf_startpos = 0
 
+        isSplitRead = False
+        if len(expected_partial_alignments) > 1:
+            s_maf_split_reads += 1
+            isSplitRead = True
         if len(samline_list) != len(expected_partial_alignments):
             # sys.stderr.write('\nWARNING: suspicious number of alignments for query %s!' % qname)
             s_maf_suspicious_alignments += 1
@@ -209,15 +227,19 @@ def processData(datafolder, resultfile, annotationfile):
                 maf_startpos = expected_alignement[0]
                 maf_endpos = expected_alignement[1]
                 # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
-                allowed_inacc = 0
+                allowed_inacc = 5
 
                 if abs(sl_startpos - maf_startpos) > allowed_inacc or abs(sl_endpos - maf_endpos) > allowed_inacc:
                     good_alignment = False
 
             if good_alignment:
                 s_maf_good_alignments += 1
+                if isSplitRead:
+                    s_maf_good_split_alignments += 1
             else:
-                s_maf_bad_slignments += 1
+                s_maf_bad_alignments += 1
+                if isSplitRead:
+                    s_maf_bad_split_alignments += 1
                 # TODO: check which alignments are bad and why
                 # If the choromosome is different its obviously a bad alignment
                 if RNAseqEval.getChromName(samline.rname) == RNAseqEval.getChromName(annotation.seqname):
@@ -309,7 +331,10 @@ def processData(datafolder, resultfile, annotationfile):
     sys.stdout.write('\nPotential bad strand alignments: %d' % s_num_potential_bad_strand)
     sys.stdout.write('\nMAF: Suspicious alignments: %d' % s_maf_suspicious_alignments)
     sys.stdout.write('\nMAF: Good alignments: %d' % s_maf_good_alignments)
-    sys.stdout.write('\nMAF: Bad alignments: %d' % s_maf_bad_slignments)
+    sys.stdout.write('\nMAF: Bad alignments: %d' % s_maf_bad_alignments)
+    sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
+    sys.stdout.write('\nMAF: Good SPLIT alignments: %d' % s_maf_good_split_alignments)
+    sys.stdout.write('\nMAF: Bad SPLIT alignments: %d' % s_maf_bad_split_alignments)
     sys.stdout.write('\nDone!\n')
 
 
