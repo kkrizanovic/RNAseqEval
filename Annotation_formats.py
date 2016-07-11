@@ -117,6 +117,7 @@ class GeneDescription:
         self.end = -1
         self.score = 0.0
         self.items = []
+        self.splicings = []
 
     def getLength(self):
         return self.end - self.start
@@ -221,7 +222,7 @@ def Annotation_From_BED(bedline):
 
 
 # TODO: the implementation is currently Faulty
-# It assumes one exon per gene, which is true  for bacteria but not for eucaryota
+# It assumes one exon per gene, which is true e.g. for bacteria but not for eucaryota
 def Annotation_From_GFF(gffline):
     genedscp = GeneDescription()
     genedscp.seqname = gffline.seqname
@@ -232,8 +233,9 @@ def Annotation_From_GFF(gffline):
     genedscp.strand = gffline.strand
 
     # Extracting from GFF attributes
-    genedcsp.genename = gffline.attribute['gene_id']
-    genedcsp.transcriptname = gffline.attribute['transcript_id']
+    # Removing double quotes!
+    genedscp.genename = gffline.attribute['gene_id'][1:-1]
+    genedscp.transcriptname = gffline.attribute['transcript_id'][1:-1]
 
     # constructing a single gene item (exon)
     geneitem = GeneItem()
@@ -257,13 +259,31 @@ def Load_Annotation_From_File(filename):
     else:
         raise Exception('Invalid annotation file type: %s' % fext)
 
+    annotation_dict = {}
+
     annotations = []
 
     if type == 'GFF' or type == 'GTF':
         gff_lines = Load_GFF_From_File(filename)
         for gffline in gff_lines:
-            annt = Annotation_From_GFF(gffline)
-            annotations.append(annt)
+            new_annt = Annotation_From_GFF(gffline)
+            annt_name = new_annt.genename
+            if annt_name in annotation_dict:
+                old_annt = annotation_dict[annt_name]
+                if new_annt.seqname != old_annt.seqname or \
+                   new_annt.source != old_annt.source or \
+                   new_annt.strand != old_annt.strand or \
+                   new_annt.genename != old_annt.genename or \
+                   new_annt.transcriptname != old_annt.transcriptname:
+                    raise Exception('Invalid GFF/GTF line for transcript %s' % annt_name)
+                # Assuming that new_annt has only one item
+                assert len(new_annt.items) == 1
+                old_annt.items.append(new_annt.items[0])
+                annotation_dict[annt_name] = old_annt
+            else:
+                annotation_dict[annt_name] = new_annt
+
+        annotations = annotation_dict.values()
 
     elif type == 'BED':
         bed_lines = Load_BED_From_File(filename)
@@ -329,9 +349,11 @@ def Load_GFF_From_File(filename):
             gffline.attribute = {}
         else:
             att_line = elements[8]
-            att_list = att_line.split(';')
-            for i in xrange(len(att_list)/2):
-                gffline.attribute[att_list[2*i]] = att_list[2*i+1]
+            att_list = att_line.split(';')          # Separating attribute definitions
+            for i in xrange(len(att_list)):
+                elements = att_list[i].split()      # Separating key and value for each attribute
+                if len(elements) == 2:
+                    gffline.attribute[elements[0]] = elements[1]
 
         # TODO: GFF and GTF contain start and stop codons, CDSs and exons
         # currently using only exons (maybe CDS would be a better choice)

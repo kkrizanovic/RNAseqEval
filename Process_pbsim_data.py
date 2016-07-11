@@ -23,10 +23,30 @@ simFolderDict = {'Sim1' : 'sim1_20perc_X5'
                , 'Sim4' : 'sim4_20perc_X20'}
 
 
+def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
+    if interval1[0] < interval2[0] - allowed_inacc:
+        return False
+    if interval1[0] > interval2[0] + allowed_inacc:
+        return False
+    if interval1[1] < interval2[1] - allowed_inacc:
+        return False
+    if interval1[1] > interval2[1] + allowed_inacc:
+        return False
+
+    return True
+
+def interval_overlaps(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
+
+    if (interval1[1] <= interval2[0] + allowed_inacc) or (interval1[0] >= interval2[1] - allowed_inacc):
+        return False
+    else:
+        return True
+
+
 def processData(datafolder, resultfile, annotationfile):
 
     # Loading results SAM file
-    report = EvalReport(ReportType.FASTA_REPORT)
+    report = EvalReport(ReportType.FASTA_REPORT)    # not needed
     paramdict = {}
 
     sys.stderr.write('\n(%s) Loading and processing SAM file with mappings ... ' % datetime.now().time().isoformat())
@@ -77,6 +97,15 @@ def processData(datafolder, resultfile, annotationfile):
     s_maf_good_split_alignments = 0
     s_maf_bad_split_alignments = 0
 
+    s_maf_hit_all_parts = 0
+    s_maf_hit_one_part = 0
+    s_maf_eq_one_part = 0
+    s_maf_multihit_parts = 0
+
+    s_maf_split_hit_all_parts = 0
+    s_maf_split_hit_one_part = 0
+    s_maf_split_eq_one_part = 0
+
     s_num_potential_bad_strand = 0
 
     # All samlines in a list should have the same query name
@@ -92,8 +121,6 @@ def processData(datafolder, resultfile, annotationfile):
         for samline in samline_list[1:]:
             if samline.qname != qname:
                 sys.stderr.write('\nWARNING: two samlines in the same list with different query names (%s/%s)' % (qname, samline.qname))
-                import pdb
-                pdb.set_trace()
 
         # Look for the first underscore in query name
         # Everything before that is the simulation folder name
@@ -150,7 +177,7 @@ def processData(datafolder, resultfile, annotationfile):
         annotation = annotation_dict[simGeneName]
 
         if len(samline_list) > len(annotation.items):
-            sys.stderr.write('\nWARNING: A number of partial alignments exceeds the number of exons for query %s! (%d / %d)' % (qname, len(samline_list), len(annotation.items)))
+            # sys.stderr.write('\nWARNING: A number of partial alignments exceeds the number of exons for query %s! (%d / %d)' % (qname, len(samline_list), len(annotation.items)))
             s_num_oversplit_alignment += 1
 
         # Reading MAF file to get original position and length of the simulated read
@@ -172,8 +199,8 @@ def processData(datafolder, resultfile, annotationfile):
                         break
 
         if maf_qname != simQName:
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise Exception('ERROR: could not find query %s in maf file %s' % (qname, simMafFileName))
 
         # Calculating expected partial alignmetns from MAF and annotations
@@ -207,30 +234,51 @@ def processData(datafolder, resultfile, annotationfile):
             # Start position should only be considered for the first exon
             maf_startpos = 0
 
+        numparts = len(expected_partial_alignments)
+        # For each part of expected partial alignments, these maps will count
+        # how many real partial alignments overlap or equal it
+        parthitmap = {(i+1):0 for i in xrange(numparts)}
+        parteqmap = {(i+1):0 for i in xrange(numparts)}
+
         isSplitRead = False
         if len(expected_partial_alignments) > 1:
             s_maf_split_reads += 1
             isSplitRead = True
-        if len(samline_list) != len(expected_partial_alignments):
-            # sys.stderr.write('\nWARNING: suspicious number of alignments for query %s!' % qname)
-            s_maf_suspicious_alignments += 1
+
+        if RNAseqEval.getChromName(samline_list[0].rname) != RNAseqEval.getChromName(annotation.seqname):
+            # import pdb
+            # pdb.set_trace()
+            s_num_badchrom_alignments += 1
         else:
+            if len(samline_list) != len(expected_partial_alignments):
+            # sys.stderr.write('\nWARNING: suspicious number of alignments for query %s!' % qname)
+                s_maf_suspicious_alignments += 1
+            # import pdb
+            # pdb.set_trace()
+
             good_alignment = True
-            for i in range(len(samline_list)):
-                samline = samline_list[i]
-                expected_alignement = expected_partial_alignments[i]
+            for samline in samline_list:
                 sl_startpos = samline.pos - 1   # SAM positions are 1-based
                 # NOTE: Due to currenly incorrect handling of MAF file
                 #       Have to make this work better
                 reflength = samline.CalcReferenceLengthFromCigar()
                 sl_endpos = sl_startpos + reflength
-                maf_startpos = expected_alignement[0]
-                maf_endpos = expected_alignement[1]
-                # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
-                allowed_inacc = 5
 
-                if abs(sl_startpos - maf_startpos) > allowed_inacc or abs(sl_endpos - maf_endpos) > allowed_inacc:
-                    good_alignment = False
+                good_alignment = True
+                for i in xrange(len(expected_partial_alignments)):
+                    expected_alignement = expected_partial_alignments[i]
+                    maf_startpos = expected_alignement[0]
+                    maf_endpos = expected_alignement[1]
+                    # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
+                    allowed_inacc = 5
+
+                    if interval_equals((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                        parteqmap[i+1] += 1
+                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                        parthitmap[i+1] += 1
+
+                    if abs(sl_startpos - maf_startpos) > allowed_inacc or abs(sl_endpos - maf_endpos) > allowed_inacc:
+                        good_alignment = False
 
             if good_alignment:
                 s_maf_good_alignments += 1
@@ -250,9 +298,37 @@ def processData(datafolder, resultfile, annotationfile):
                     s_num_badchrom_alignments += 1
 
 
-        # Comparing actual alignments to expected partial alignments
-        for samline in samline_list:
-            pass
+        # Analyzing parthitmap and parteqmap
+        oneHit = False
+        allHits = True
+        oneEq = False
+        multiHit = False
+        for i in xrange(numparts):
+            if parthitmap[i+1] > 0:
+                oneHit = True
+            if parthitmap[i+1] == 0:
+                allHits = False
+            if parthitmap[i+1] > 1:
+                multiHit = True
+            if parteqmap[i+1] > 0:
+                oneEq = True
+
+        if oneHit:
+            s_maf_hit_one_part += 1
+            if isSplitRead:
+                s_maf_split_hit_one_part += 1
+        if allHits:
+            s_maf_hit_all_parts += 1
+            if isSplitRead:
+                s_maf_split_hit_all_parts += 1
+                import pdb
+                pdb.set_trace()
+        if oneEq:
+            s_maf_eq_one_part += 1
+            if isSplitRead:
+                s_maf_split_eq_one_part += 1
+        if multiHit:
+            s_maf_multihit_parts += 1
 
         num_start_hits = 0
         num_end_hits = 0
@@ -332,11 +408,17 @@ def processData(datafolder, resultfile, annotationfile):
     sys.stdout.write('\nMAF: Suspicious alignments: %d' % s_maf_suspicious_alignments)
     sys.stdout.write('\nMAF: Good alignments: %d' % s_maf_good_alignments)
     sys.stdout.write('\nMAF: Bad alignments: %d' % s_maf_bad_alignments)
+    sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
+    sys.stdout.write('\nMAF: Hit at least one part: %d' % s_maf_hit_one_part)
+    sys.stdout.write('\nMAF: Equals at least one part: %d' % s_maf_eq_one_part)
+    sys.stdout.write('\nMAF: Multihit parts (fragmented) alignments: %d' % s_maf_multihit_parts)
     sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
     sys.stdout.write('\nMAF: Good SPLIT alignments: %d' % s_maf_good_split_alignments)
     sys.stdout.write('\nMAF: Bad SPLIT alignments: %d' % s_maf_bad_split_alignments)
+    sys.stdout.write('\nMAF: Hit all parts on split read: %d' % s_maf_split_hit_all_parts)
+    sys.stdout.write('\nMAF: Hit at least one part on split read: %d' % s_maf_split_hit_one_part)
+    sys.stdout.write('\nMAF: Equals at least one part on split read: %d' % s_maf_split_eq_one_part)
     sys.stdout.write('\nDone!\n')
-
 
 
 def verbose_usage_and_exit():

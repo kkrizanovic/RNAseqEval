@@ -183,8 +183,10 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
             if origQname not in new_sam_hash:
                 new_sam_hash[origQname] = sam_lines
             else:
+                import pdb
+                pdb.set_trace()
                 new_sam_lines = sam_lines + new_sam_hash[origQname]
-                new_sam_hash[origQname] = new_sam_lines
+                new_sam_hash[origQname] = sam_lines
 
         sam_hash = new_sam_hash
 
@@ -353,7 +355,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     sys.stderr.write('\n')
     sys.stderr.write('\n(%s) START: Evaluating mapping with annotations:' % datetime.now().time().isoformat())
 
-    report = EvalReport(ReportType.ANNOTATION_REPORT)
+    report = EvalReport(ReportType.MAPPING_REPORT)
 
     sys.stderr.write('\n(%s) Loading and processing FASTA reference ... ' % datetime.now().time().isoformat())
     [chromname2seq, headers, seqs, quals] = load_and_process_reference(ref_file, paramdict, report)
@@ -611,7 +613,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                                 exonPartial = True
 
                     # TODO: What to do if an exon is partially hit?
-                    # NOTE: Due to information in hip map and complete map
+                    # NOTE: Due to information in hit map and complete map
                     #       This information might be unnecessary
                     #       It can be deduced from exon maps
 
@@ -638,7 +640,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                 report.num_undercover_alignments = 0
                 report.num_overcover_alignments = 0
 
-                # Exon start and edn position
+                # Exon start and end position
                 num_good_starts = len([x for x in exonstartmap.values() if x > 0])
                 num_good_ends = len([x for x in exonendmap.values() if x > 0])
                 report.num_good_starts += num_good_starts
@@ -851,6 +853,91 @@ def eval_mapping(ref_file, sam_file, paramdict):
     out_file.write(report.toString())
 
 
+def eval_annotations(annotations_file, paramdict):
+
+    out_filename = ''
+    out_file = None
+
+    if '-o' in paramdict:
+        out_filename = paramdict['-o'][0]
+    elif '--output' in paramdict:
+        out_filename = paramdict['--output'][0]
+
+    if out_filename != '':
+        out_file = open(out_filename, 'w+')
+    else:
+        out_file = sys.stdout
+
+    sys.stderr.write('\n')
+    sys.stderr.write('\n(%s) START: Evaluating mapping with FASTA reference only:' % datetime.now().time().isoformat())
+
+    report = EvalReport(ReportType.ANNOTATION_REPORT)
+
+    sys.stderr.write('\n(%s) Loading and processing annotations file ... ' % datetime.now().time().isoformat())
+    annotations, expressed_genes, gene_coverage = load_and_process_annotations(annotations_file, paramdict, report)
+
+    report.commandline = paramdict['command']
+
+    # Analyzing annotations to discover alternate splicings
+    # Groupign annotations which overlap and are on the same strand
+    start_new_group = True
+    grouped_annotations = []
+
+    for new_annotation in annotations:
+        if start_new_group:
+            annotation_group = []
+            annotation_group.append(new_annotation)
+            group_start = new_annotation.start
+            group_end = new_annotation.end
+            group_strand = new_annotation.strand
+            group_chrom = new_annotation.seqname
+            start_new_group = False
+        else:
+            if new_annotation.overlapsGene(group_start, group_end) and group_strand == new_annotation.strand and group_chrom == new_annotation.seqname:
+                # Add annotation to current group
+                annotation_group.append(new_annotation)
+            else:
+                # Save the current group and start the new one
+                grouped_annotations.append(annotation_group)
+                annotation_group = []
+                annotation_group.append(new_annotation)
+                group_start = new_annotation.start
+                group_end = new_annotation.end
+                group_strand = new_annotation.strand
+                group_chrom = new_annotation.seqname
+
+
+    # At the end, add last group if it exists
+    if len(annotation_group) > 0:
+        grouped_annotations.append(annotation_group)
+
+    report.num_annotation_groups = len(grouped_annotations)
+
+    # Analyze groupped annotations
+    for ann_group in grouped_annotations:
+        num_spliced_alignments = len(ann_group)
+        if num_spliced_alignments > 1:
+            group_name = ann_group[0].genename + ('(%d)' % len(ann_group))
+            group_splicing_info = ''
+            report.num_alternate_spliced_genes += 1
+            if report.max_spliced_alignments == 0 or report.max_spliced_alignments < num_spliced_alignments:
+                report.max_spliced_alignments = num_spliced_alignments
+            if report.min_spliced_alignments == 0 or report.min_spliced_alignments > num_spliced_alignments:
+                report.min_spliced_alignments = num_spliced_alignments
+            for annotation in ann_group:
+                num_exons = len(annotation.items)
+                transcript = annotation.genename
+                group_splicing_info += '%s(%d), ' % (transcript, num_exons)
+                if report.max_spliced_exons == 0 or report.max_spliced_exons < num_exons:
+                    report.max_spliced_exons = num_exons
+                if report.min_spliced_exons == 0 or report.min_spliced_exons < num_exons:
+                    report.min_spliced_exons = num_exons
+
+            report.alternate_splicing[group_name] = group_splicing_info
+
+    out_file.write(report.toString())
+
+
 def verbose_usage_and_exit():
     sys.stderr.write('RNAseqEval - A tool for evaulating RNAseq results.\n')
     sys.stderr.write('\n')
@@ -861,6 +948,7 @@ def verbose_usage_and_exit():
     sys.stderr.write('\t\tsetup\n')
     sys.stderr.write('\t\tcleanup\n')
     sys.stderr.write('\t\teval-mapping\n')
+    sys.stderr.write('\t\teval-annotations\n')
     sys.stderr.write('\n')
     exit(0)
 
@@ -912,6 +1000,24 @@ if __name__ == '__main__':
         paramdict['command'] = ' '.join(sys.argv)
 
         eval_mapping(ref_file, sam_file, paramdict)
+
+    elif (mode == 'eval-annotations'):
+        if (len(sys.argv) < 3):
+            sys.stderr.write('Evaluates gene annotation from a BED or GTF/GFF file.\n')
+            sys.stderr.write('Usage:\n')
+            sys.stderr.write('%s %s <annotations file> options\n'% (sys.argv[0], sys.argv[1]))
+            sys.stderr.write('options:"\n')
+            sys.stderr.write('-o (--output) <file> : output file to which the report will be written\n')
+            sys.stderr.write('\n')
+            exit(1)
+
+        annotation_file = sys.argv[2]
+
+        pparser = paramsparser.Parser(paramdefs)
+        paramdict = pparser.parseCmdArgs(sys.argv[3:])
+        paramdict['command'] = ' '.join(sys.argv)
+
+        eval_annotations(annotation_file, paramdict)
 
     else:
         print 'Invalid mode!'

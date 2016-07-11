@@ -3,7 +3,8 @@
 
 class ReportType:
     FASTA_REPORT = 0
-    ANNOTATION_REPORT = 1
+    MAPPING_REPORT = 1
+    ANNOTATION_REPORT = 2
 
 class EvalReport:
 
@@ -64,6 +65,14 @@ class EvalReport:
         self.min_exon_length = 0
         self.max_exon_length = 0
         self.avg_exon_length = 0.0
+
+        # Information on groupped annotations / alternate splicings
+        self.num_annotation_groups = 0
+        self.num_alternate_spliced_genes = 0
+        self.max_spliced_alignments = 0
+        self.min_spliced_alignments = 0
+        self.max_spliced_exons = 0
+        self.min_spliced_exons = 0
 
         # Advanced mapping information
         self.allowed_inacc = 0
@@ -136,10 +145,15 @@ class EvalReport:
         # Each gene has one global counter (index 0), and one counter for each exon
         self.gene_coverage = {}
 
+        # Alternate splicing
+        # Information on genes that have alternate splicing
+        self.alternate_splicing = {}
+
 
     def chromosomes(self):
         output = '\t\t'
-        for chrom, chromlen in self.chromlengths.iteritems():
+        for chrom in sorted(self.chromlengths.keys()):
+            chromlen = self.chromlengths[chrom]
             output += "\t\t%s: %dbp\n" % (chrom, chromlen)
 
         return output
@@ -168,7 +182,7 @@ class EvalReport:
                    self.num_match, self.num_mismatch, self.num_insert, self.num_delete, \
                    self.match_percentage, self.mismatch_percentage, self.insert_percentage, self.delete_percentage)
             return report + '\n'
-        elif self.rtype == ReportType.ANNOTATION_REPORT:
+        elif self.rtype == ReportType.MAPPING_REPORT:
             report = """\n
             Command Line: %s
             Reference format: ANNOTATION
@@ -197,13 +211,23 @@ class EvalReport:
             report += """\n
             Annotation statistics:
             Total gene length = %d
-            Number of Genes / Exons (Multiexon genes) = %d / %d (%d)
+            Number of Transcripts / Exons (Multiexon transcripts) = %d / %d (%d)
             Maximum number of exons in a gene = %d
             Gene size (Min / Max / Avg) = %d / %d / %.2f
             Exon size (Min / Max / Avg) = %d / %d / %.2f
             """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
                    self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
                    self.min_exon_length, self.max_exon_length, self.avg_exon_length)
+
+            report += """\n
+            Grouped annotation (alternate splicing) statistics:
+            Number of annotation groups (genes) = %d
+            Number of genes with alternate splicing = %d
+            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+            Maximum / minimum number of exons in spliced alignments = %d / %d
+            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+                   self.max_spliced_alignments, self.min_spliced_alignments, \
+                   self.max_spliced_exons, self.min_spliced_exons)
 
             report += """\n
             Mapping quality information:
@@ -265,6 +289,49 @@ class EvalReport:
                         reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
 
                     report += reportline + '\n'
+
+            return report + '\n'
+        elif self.rtype == ReportType.ANNOTATION_REPORT:
+            report = """\n
+            Command Line: %s
+            Reference format: ANNOTATION
+            General information:
+            Reference length = %d bp
+            Number of chromosomes = %d
+            Chromosomes:
+            %s
+            """ % (self.commandline, self.reflength, len(self.chromlengths), self.chromosomes())
+
+            report += """\n
+            Annotation statistics:
+            Total gene length = %d
+            Number of Genes / Exons (Multiexon genes) = %d / %d (%d)
+            Maximum number of exons in a gene = %d
+            Gene size (Min / Max / Avg) = %d / %d / %.2f
+            Exon size (Min / Max / Avg) = %d / %d / %.2f
+            """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
+                   self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
+                   self.min_exon_length, self.max_exon_length, self.avg_exon_length)
+
+            report += """\n
+            Grouped annotation (alternate splicing) statistics:
+            Number of annotation groups (genes) = %d
+            Number of genes with alternate splicing = %d
+            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+            Maximum / minimum number of exons in spliced alignments = %d / %d
+            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+                   self.max_spliced_alignments, self.min_spliced_alignments, \
+                   self.max_spliced_exons, self.min_spliced_exons)
+
+            report += """\n
+            Information on genes with alternate splicing:
+            Number of genes with alternate splicing = %d
+            Alternate splicing genes:
+            genename: [transcript name (number of exons)]...
+            """ % len(self.alternate_splicing)
+
+            for genename, alternate_splicing_info in self.alternate_splicing.items():
+                report += '%s: %s\n' % (genename, alternate_splicing_info)
 
             return report + '\n'
         else:
