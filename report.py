@@ -138,6 +138,7 @@ class EvalReport:
         # Looking at expressed genes, ones that overlap with at least one read in SAM file
         # Storing them in a dictionary together with a number of hits for each exon in the gene
         self.expressed_genes = {}
+        self.output_gene_expression = True
 
         # Calculating gene coverage, how many bases of each gene and exon are covered by ready
         # Bases covered multiple times are taken into account multiple times
@@ -148,12 +149,14 @@ class EvalReport:
         # Alternate splicing
         # Information on genes that have alternate splicing
         self.alternate_splicing = {}
+        self.output_alternate_splicing = True
 
 
     def chromosomes(self):
         output = '\t\t'
         for chrom in sorted(self.chromlengths.keys()):
             chromlen = self.chromlengths[chrom]
+
             output += "\t\t%s: %dbp\n" % (chrom, chromlen)
 
         return output
@@ -267,28 +270,29 @@ class EvalReport:
                 if expression[0] > 0:
                     exp_gn_cnt += 1
 
-            report += """\n
+            if self.output_gene_expression:
+                report += """\n
             Gene/exon expression and coverage information:
             Number of expressed genes = %d
             Expressed genes:
             genename  number_of_exons  gene_hits / gene_covered_bases  [(exon_hits / exon_covered_bases)]...
-            """ % exp_gn_cnt
+                """ % exp_gn_cnt
 
-            if len(self.expressed_genes) != len(self.gene_coverage):
-                raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' % (len(expressed_genes), len(gene_coverage)))
+                if len(self.expressed_genes) != len(self.gene_coverage):
+                    raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' % (len(expressed_genes), len(gene_coverage)))
 
-            for genename in self.expressed_genes.keys():
-                numexons = len(self.expressed_genes[genename]) - 1
-                genehits = self.expressed_genes[genename][0]
-                gene_cov_bs = self.gene_coverage[genename][0]
-                if genehits > 0:
-                    reportline = '%s  %d  %d  %d' % (genename, numexons, genehits, gene_cov_bs)
-                    for i in range(1, numexons+1):
-                        exonhits = self.expressed_genes[genename][i]
-                        exon_cov_bs = self.gene_coverage[genename][i]
-                        reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
+                for genename in self.expressed_genes.keys():
+                    numexons = len(self.expressed_genes[genename]) - 1
+                    genehits = self.expressed_genes[genename][0]
+                    gene_cov_bs = self.gene_coverage[genename][0]
+                    if genehits > 0:
+                        reportline = '%s  %d  %d  %d' % (genename, numexons, genehits, gene_cov_bs)
+                        for i in range(1, numexons+1):
+                            exonhits = self.expressed_genes[genename][i]
+                            exon_cov_bs = self.gene_coverage[genename][i]
+                            reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
 
-                    report += reportline + '\n'
+                        report += reportline + '\n'
 
             return report + '\n'
         elif self.rtype == ReportType.ANNOTATION_REPORT:
@@ -323,15 +327,16 @@ class EvalReport:
                    self.max_spliced_alignments, self.min_spliced_alignments, \
                    self.max_spliced_exons, self.min_spliced_exons)
 
-            report += """\n
+            if self.output_alternate_splicing:
+                report += """\n
             Information on genes with alternate splicing:
             Number of genes with alternate splicing = %d
             Alternate splicing genes:
             genename: [transcript name (number of exons)]...
-            """ % len(self.alternate_splicing)
+                """ % len(self.alternate_splicing)
 
-            for genename, alternate_splicing_info in self.alternate_splicing.items():
-                report += '%s: %s\n' % (genename, alternate_splicing_info)
+                for genename, alternate_splicing_info in self.alternate_splicing.items():
+                    report += '%s: %s\n' % (genename, alternate_splicing_info)
 
             return report + '\n'
         else:

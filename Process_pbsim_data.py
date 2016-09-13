@@ -18,9 +18,12 @@ from fastqparser import read_fastq
 P_CHECK_STRAND = False
 
 
-simFolderDict = {'Sim1' : 'sim1_20perc_X5'
-               , 'Sim3' : 'sim3_20perc_X50'
-               , 'Sim4' : 'sim4_20perc_X20'}
+simFolderDict = {'simG1AS' : 'group1_AS'
+               , 'simG1SS' : 'group1_SS'
+               , 'simG2AS' : 'group2_AS'
+               , 'simG2SS' : 'group2_SS'
+               , 'simG3AS' : 'group3_AS'
+               , 'simG3SS' : 'group3_SS'}
 
 
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
@@ -135,6 +138,21 @@ def processData(datafolder, resultfile, annotationfile):
         simFolder = simFolderDict[simFolderKey]
         simQName = qname[pos+1:]
 
+        # Due to error in data preparation, have to make some extra processing
+        if simQName[:6] == 'SimG2_':
+            simQName = simQName[6:]
+
+
+        if simFolderKey == 'SimG1':
+            simFileSuffix = 'g1'
+        elif simFolderKey == 'SimG2':
+            simFileSuffix = 'g2'
+        elif simFolderKey == 'SimG3':
+            simFileSuffix = 'g3'
+        else:
+            simFileSuffix = 'sd'
+
+
         pos = simQName.find('_')
         pos2 = simQName.find('_part')
         if pos < 0:
@@ -142,13 +160,14 @@ def processData(datafolder, resultfile, annotationfile):
 
         simQLetter = simQName[0]       # Should always be S
 
-        # BBMap separates a query into smaller parts he can managed
+        # BBMap separates a query into smaller parts he can manage
         # Extends query with '_part_#', which has to be ignored
         if pos2 <> -1:
             simQName = simQName[:pos2]
+
         simRefNumber = int(simQName[1:pos])
         simQNumber = int(simQName[pos+1:])
-        simFileName = 'sd_%04d' % simRefNumber
+        simFileName = simFileSuffix + '_%04d' % simRefNumber
         simRefFileName = simFileName + '.ref'
         simSeqFileName = simFileName + '.fastq'
         simMafFileName = simFileName + '.maf'
@@ -321,8 +340,8 @@ def processData(datafolder, resultfile, annotationfile):
             s_maf_hit_all_parts += 1
             if isSplitRead:
                 s_maf_split_hit_all_parts += 1
-                import pdb
-                pdb.set_trace()
+                #import pdb
+                #pdb.set_trace()
         if oneEq:
             s_maf_eq_one_part += 1
             if isSplitRead:

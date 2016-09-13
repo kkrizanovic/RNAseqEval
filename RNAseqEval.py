@@ -9,7 +9,7 @@ import copy
 
 from datetime import datetime
 
-# To enable importing from samscripts submodulew
+# To enable importing from samscripts submodule
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(SCRIPT_PATH, 'samscripts/src'))
 import utility_sam
@@ -30,7 +30,11 @@ paramdefs = {'-a' : 1,
              '--version' : 0,
              '-v' : 0,
              '-o' : 1,
-             '--output' : 1}
+             '--output' : 1,
+             '-ex' : 0,
+             '--expression' : 0,
+             '-as' : 0,
+             '--alternate_splicing' : 0}
 
 
 def cleanup():
@@ -930,11 +934,16 @@ def eval_annotations(annotations_file, paramdict):
                 group_splicing_info += '%s(%d), ' % (transcript, num_exons)
                 if report.max_spliced_exons == 0 or report.max_spliced_exons < num_exons:
                     report.max_spliced_exons = num_exons
-                if report.min_spliced_exons == 0 or report.min_spliced_exons < num_exons:
+                if report.min_spliced_exons == 0 or report.min_spliced_exons > num_exons:
                     report.min_spliced_exons = num_exons
 
             report.alternate_splicing[group_name] = group_splicing_info
 
+    if '-as' in paramdict or '--alternate_splicing' in paramdict:
+        report.output_alternate_splicing = True
+    else:
+        report.output_alternate_splicing = False
+        
     out_file.write(report.toString())
 
 

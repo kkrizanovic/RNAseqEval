@@ -117,7 +117,7 @@ class GeneDescription:
         self.end = -1
         self.score = 0.0
         self.items = []
-        self.splicings = []
+
 
     def getLength(self):
         return self.end - self.start
@@ -173,6 +173,18 @@ class GeneDescription:
 
         return count
 
+    # Recallculate gen start and end position from exons
+    def calcBoundsFromItems(self):
+        if len(self.items) == 0:
+            pass
+        else:
+            self.start = self.items[0].start
+            self.end = self.items[0].end
+            for item in self.items[1:]:
+                if item.start < self.start:
+                    self.start = item.start
+                if item.end > self.end:
+                    self.end = item.end
 
 
 class GFFLine:
@@ -247,7 +259,7 @@ def Annotation_From_GFF(gffline):
     return genedscp
 
 
-def Load_Annotation_From_File(filename):
+def Load_Annotation_From_File(filename, check_duplicates = False):
 
     fname, fext = os.path.splitext(filename)
     if fext == '.gff':
@@ -263,33 +275,64 @@ def Load_Annotation_From_File(filename):
 
     annotations = []
 
+    # Process GFF lines, several lines represent the same transcript
+    # Collect the lines with the same transcript name as the same annotation
+    # Since there can be more that one annotation with the same name, have to watch out
+    # Colect only consequtive enteries.
     if type == 'GFF' or type == 'GTF':
         gff_lines = Load_GFF_From_File(filename)
+        old_annt_name = ''
+        curr_annt = None        # Current collected annotation
         for gffline in gff_lines:
             new_annt = Annotation_From_GFF(gffline)
-            annt_name = new_annt.genename
-            if annt_name in annotation_dict:
-                old_annt = annotation_dict[annt_name]
-                if new_annt.seqname != old_annt.seqname or \
-                   new_annt.source != old_annt.source or \
-                   new_annt.strand != old_annt.strand or \
-                   new_annt.genename != old_annt.genename or \
-                   new_annt.transcriptname != old_annt.transcriptname:
-                    raise Exception('Invalid GFF/GTF line for transcript %s' % annt_name)
+            new_annt_name = new_annt.transcriptname
+            if old_annt_name != new_annt_name:
+                if old_annt_name != '':
+                    # Store the last collected annotation (calculate start and end position from items first)
+                    curr_annt.calcBoundsFromItems()
+                    annotations.append(curr_annt)
+                # Start a new collected annotation
+                curr_annt = new_annt
+            else:
+                if new_annt.seqname != curr_annt.seqname or \
+                   new_annt.source != curr_annt.source or \
+                   new_annt.strand != curr_annt.strand or \
+                   new_annt.genename != curr_annt.genename or \
+                   new_annt.transcriptname != curr_annt.transcriptname:
+                    raise Exception('Invalid GFF/GTF line for transcript %s' % new_annt_name)
                 # Assuming that new_annt has only one item
                 assert len(new_annt.items) == 1
-                old_annt.items.append(new_annt.items[0])
-                annotation_dict[annt_name] = old_annt
-            else:
-                annotation_dict[annt_name] = new_annt
+                curr_annt.items.append(new_annt.items[0])
 
-        annotations = annotation_dict.values()
+            old_annt_name = new_annt_name
+
+        # Add the last collected annotation
+        if old_annt_name != '':
+            annotations.append(curr_annt)
 
     elif type == 'BED':
         bed_lines = Load_BED_From_File(filename)
         for bedline in bed_lines:
             annt = Annotation_From_BED(bedline)
             annotations.append(annt)
+
+    # Checking annotations for dupicate genenames
+    # Raising exception if finding any
+    if check_duplicates:
+        num_duplicates = 0
+        # duplicates = []
+        for i in xrange(len(annotations)):
+            genename1 = annotations[i].genename
+            for j in xrange(i+1, len(annotations)):
+                genename2 = annotations[j].genename
+                if genename1 == genename2:
+                    import pdb
+                    pdb.set_trace()
+                    num_duplicates += 1
+                    # duplicates.append(genename1)
+
+        if num_duplicates > 0:
+            raise Exception('Duplicate annotations found (%d)' % num_duplicates)
 
     return annotations
 
