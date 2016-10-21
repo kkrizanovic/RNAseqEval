@@ -18,12 +18,24 @@ from fastqparser import read_fastq
 P_CHECK_STRAND = False
 
 
-simFolderDict = {'simG1AS' : 'group1_AS'
-               , 'simG1SS' : 'group1_SS'
-               , 'simG2AS' : 'group2_AS'
-               , 'simG2SS' : 'group2_SS'
-               , 'simG3AS' : 'group3_AS'
-               , 'simG3SS' : 'group3_SS'}
+# Predefined dictionaries for analyzing different datasets
+simFolderDict_d1 = {'SimG1' : 'group1'
+                  , 'SimG2' : 'group2'
+                  , 'SimG3' : 'group3'}
+
+simFolderDict_d2 = {'simG1AS' : 'group1_AS'
+                  , 'simG1SS' : 'group1_SS'
+                  , 'simG2AS' : 'group2_AS'
+                  , 'simG2SS' : 'group2_SS'
+                  , 'simG3AS' : 'group3_AS'
+                  , 'simG3SS' : 'group3_SS'}
+
+# A dictionary connecting fasta/fastq header prefix with the folder with pbsim generated data
+# Containing information for reads with each prefix
+# This is used because data is simulated using several pbsim runs to get different
+# coverages for different sets of references (in this case transcripts)
+# NOTE: this should be changed for different simulations
+simFolderDict = simFolderDict_d1
 
 
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
@@ -134,6 +146,8 @@ def processData(datafolder, resultfile, annotationfile):
 
         simFolderKey = qname[:pos]
         if simFolderKey not in simFolderDict:
+            import pdb
+            pdb.set_trace()
             raise Exception('Bad simulation folder short name (%s)!' % simFolderKey)
         simFolder = simFolderDict[simFolderKey]
         simQName = qname[pos+1:]

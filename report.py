@@ -5,6 +5,7 @@ class ReportType:
     FASTA_REPORT = 0
     MAPPING_REPORT = 1
     ANNOTATION_REPORT = 2
+    TEMP_REPORT = 10        # Report used to temporarily store some data
 
 class EvalReport:
 
@@ -339,6 +340,8 @@ class EvalReport:
                     report += '%s: %s\n' % (genename, alternate_splicing_info)
 
             return report + '\n'
+        elif self.rtype == ReportType.TEMP_REPORT:
+            return "\nTEMP report! Nothing to report!\n"
         else:
             return "\nERROR: Report not initialized!\n"
 
