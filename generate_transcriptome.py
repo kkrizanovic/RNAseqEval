@@ -35,13 +35,21 @@ class Exon:
 def complement(base):
     if(base == 'A'):
         return 'T'
+    if(base == 'a'):
+        return 't'
     if(base == 'T'):
         return 'A'
+    if(base == 't'):
+        return 'a'
     if(base == 'G'):
         return 'C'
+    if(base == 'g'):
+        return 'c'
     if(base == 'C'):
         return 'G'
-    return 'X'
+    if(base == 'c'):
+        return 'g'
+    return 'N'
 
 def complementString(string):
     s = ""
