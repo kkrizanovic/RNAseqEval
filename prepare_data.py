@@ -25,6 +25,22 @@ bad_strings_annnotations = ['random', 'chrUn']
 
 bad_strings_genomes = ['scaffold', 'patch']
 
+# Predefined values for spliting transcriptomes for used organisms
+split_sc = {1: 4000, 2: 1000, 3: 1000}
+limits_sc = [4000, 5000, 6000]
+
+split_dm_AS = {1: 1500, 2: 750, 3: 750}
+limits_dm_AS = [1500, 2250, 3000]
+
+split_dm_SS = {1: 4500, 2: 1750, 3: 1750}
+limits_dm_SS = [4500, 6250, 8000]
+
+split_hChr19_AS = {1: 800, 2: 150, 3: 50}
+limits_hChr19_AS = [800, 950, 1000]
+
+split_hChr19_SS = {1: 400, 2: 100, 3: 20}
+limits_hChr19_SS = [400, 500, 520]
+
 
 # A maximum number of alternate splicings to keep per gene
 # When preparing transcriptomes for benchmark
@@ -39,7 +55,7 @@ KEEP_DUPLICATES = False
 
 # Prepare genome reference for drosophila melanogaster
 def prepare_dm_genome(genome_file):
-    filename, file_extension = os.path.splitext(genome_file)
+    filename, file_extension = os.path.ext(genome_file)
     processed_genome_file = filename + '_P' + file_extension
     [headers, seqs, quals] = read_fastq(genome_file)
 
@@ -178,8 +194,10 @@ def prepare_sc_annotations(annotations_file):
 
 # Split a transcriptome into 3 parts, to simulate each with different coverage
 def split_transcriptome(transcriptome_file):
-    split = {1: 400, 2: 100, 3: 20}     # Split ratio
-    limits = [400, 500, 520]
+    # split = {1: 4000, 2: 1000, 3: 1000}     # Split ratio
+    # limits = [4000, 5000, 6000]
+    split = split_sc
+    limits = limits_sc
 
     filename, file_extension = os.path.splitext(transcriptome_file)
     g1_filename = filename + '_G1' + file_extension
@@ -462,7 +480,7 @@ def verbose_usage_and_exit():
     sys.stderr.write('\tmode:\n')
     sys.stderr.write('\t\tsc-genome - Process S.Cerevisiae genome\n')
     sys.stderr.write('\t\tsc-annotations - Process S.Cerevisiae annotations\n')
-    sys.stderr.write('\t\ttrans-split - Split a transcriptome nto 3 groups\n')
+    sys.stderr.write('\t\ttrans-split - Split a transcriptome into 3 groups\n')
     sys.stderr.write('\t\tdm-genome - Process D-Melanogaster genome\n')
     sys.stderr.write('\t\tdm-annotations - Process D-Melanogaster annotations\n')
     sys.stderr.write('\t\th-genome - Process human genome\n')
