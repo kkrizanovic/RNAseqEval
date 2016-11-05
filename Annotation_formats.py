@@ -240,7 +240,7 @@ def Annotation_From_GFF(gffline):
     genedscp.seqname = gffline.seqname
     genedscp.source = gffline.source
     genedscp.start = gffline.start
-    genedscp.end = gffline.end
+    genedscp.end = gffline.end + 1
     genedscp.score = gffline.score
     genedscp.strand = gffline.strand
 
@@ -253,7 +253,7 @@ def Annotation_From_GFF(gffline):
     geneitem = GeneItem()
     geneitem.frame = gffline.frame
     geneitem.start = gffline.start
-    geneitem.end = gffline.end
+    geneitem.end = gffline.end + 1
     genedscp.items.append(geneitem)
 
     return genedscp

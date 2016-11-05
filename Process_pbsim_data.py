@@ -234,11 +234,14 @@ def processData(datafolder, resultfile, annotationfile):
                         break
 
         if maf_qname != simQName:
-            # import pdb
-            # pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             raise Exception('ERROR: could not find query %s in maf file %s' % (qname, simMafFileName))
 
         # Calculating expected partial alignmetns from MAF and annotations
+
+        # Saving "maf_length" fo be able to check it later
+        t_maf_length = maf_length
 
         # 1. Calculating the index of the first exon
         # i - the index of exon currently being considered
@@ -250,8 +253,12 @@ def processData(datafolder, resultfile, annotationfile):
         # Calculating expected partial alignments by filling up exons using maf_length
         expected_partial_alignments = []
         while maf_length > 0:
-            start = annotation.items[i].start + maf_startpos
-            end = annotation.items[i].end
+            try:
+                start = annotation.items[i].start + maf_startpos
+                end = annotation.items[i].end
+            except Exception:
+                import pdb
+                pdb.set_trace()
             #if not start < end:
             #    import pdb
             #    pdb.set_trace()
