@@ -529,7 +529,7 @@ if __name__ == '__main__':
         annotations_file = sys.argv[2]
         prepare_human_annotations(annotations_file)
 
-    elif (mode == 'split_alternate'):
+    elif (mode == 'split-alternate'):
         annotations_file = sys.argv[2]
         split_alternate(annotations_file)
 
