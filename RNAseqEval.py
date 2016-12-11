@@ -697,7 +697,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     sys.stderr.write('|')
     sys.stderr.write('\nDone!')
 
-    percentage_bases_aligned = float(total_bases_aligned) / total_read_length
+    if total_read_length == 0:
+        percentage_bases_aligned = -1
+    else:
+        percentage_bases_aligned = float(total_bases_aligned) / total_read_length
 
     report.sum_read_length = total_read_length
     report.sum_bases_aligned = total_bases_aligned

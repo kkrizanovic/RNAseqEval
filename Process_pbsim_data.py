@@ -80,7 +80,8 @@ def processData(datafolder, resultfile, annotationfile):
     for annotation in annotations:
         if annotation.genename in annotation_dict:
             sys.stderr.write('\nWARNING: anotation with name %s already in the dictionary!' % annotation.genename)
-        annotation_dict[annotation.genename] = annotation
+        else:
+            annotation_dict[annotation.genename] = annotation
         if len(annotation.items) > 1:
             s_num_multiexon_genes += 1
 
@@ -159,14 +160,16 @@ def processData(datafolder, resultfile, annotationfile):
             simQName = simQName[6:]
 
 
-        if simFolderKey == 'SimG1':
-            simFileSuffix = 'g1'
-        elif simFolderKey == 'SimG2':
-            simFileSuffix = 'g2'
-        elif simFolderKey == 'SimG3':
-            simFileSuffix = 'g3'
-        else:
-            simFileSuffix = 'sd'
+#        if simFolderKey == 'SimG1':
+#            simFileSuffix = 'g1'
+#        elif simFolderKey == 'SimG2':
+#            simFileSuffix = 'g2'
+#        elif simFolderKey == 'SimG3':
+#            simFileSuffix = 'g3'
+#        else:
+#            simFileSuffix = 'sd'
+
+        simFileSuffix = 'sd'
 
 
         pos = simQName.find('_')
