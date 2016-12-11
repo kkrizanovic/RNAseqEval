@@ -613,6 +613,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         else:
             # No matching annotations were found
             # TODO: Check if anything needs to be done here
+            pass
 
     out_q.put([report, expressed_genes, gene_coverage])
     sys.stdout.write('\nEnding process %d...\n' % proc_id)
