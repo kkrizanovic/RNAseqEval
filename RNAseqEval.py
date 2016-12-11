@@ -439,146 +439,180 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         else:
             readstrand = Annotation_formats.GFF_STRANDRV
 
+        # NOTE: If a samline list overlaps with multiple annotations, find the best match
+        # 1 - Find overlapping annotations
+        # 2 - Choose annotation with the most bases aligned (should allow other criteria)
+        # 3 - Calculate everything only for "the best match" annotation
+
+        # Finding candidate annotations
+        candidate_annotations = []
+        best_match_annotation = None
         for annotation in annotations:
             # If its the same chromosome, the same strand and the read and the gene overlap, then proceed with analysis
-            # NOTE: This might be a good place for parallelization, map each chromosome
             if chromname == getChromName(annotation.seqname) and readstrand == annotation.strand and annotation.overlapsGene(startpos, endpos):
-                if annotation.genename not in genescovered:
-                    genescovered.append(annotation.genename)
+                candidate_annotations.append(annotation)
+
+        if len(candidate_annotations) > 1:
+            # Find the best matching candidate
+            max_score = 0
+            for cannotation in candidate_annotations:
+                if cannotation.genename not in genescovered:
+                    genescovered.append(cannotation.genename)
                     gene_cnt += 1
-                hit = True
 
-                if num_alignments > len(annotation.items):
-                    # TODO: BAD split!! Alignment is split, but annotation is not!
-                    badsplit = True
-                    # sys.stderr.write('\nWARNING: Bad split alignment with more parts then annotation has exons!\n')
-
-                # Updating gene expression
-                # Since all inital values for expression and coverage are zero, this could all probably default to case one
-                if annotation.genename in expressed_genes.keys():
-                    expressed_genes[annotation.genename][0] += 1
-                    gene_coverage[annotation.genename][0] += annotation.basesInsideGene(startpos, endpos)
-                else:
-                    expressed_genes[annotation.genename][0] = 1
-                    gene_coverage[annotation.genename][0] = annotation.basesInsideGene(startpos, endpos)
-
-                if annotation.insideGene(startpos, endpos):
-                    partial = False
-                else:
-                    partial = True
-
-                # Initialize exon hit map and exon complete map (also start and end map)
-                # Both have one entery for each exon
-                # Hit map collects how many times has each exon been hit by an alignment (it should be one or zero)
-                # Complete map collects which exons have been completely covered by an alignement
-                # Start map collects which exons are correctly started by an alignment (have the same starting position)
-                # End map collects which exons are correctly ended by an alignment (have the same ending position)
-                # NOTE: test this to see if it slows the program too much
-                exonhitmap = {(i+1):0 for i in xrange(len(annotation.items))}
-                exoncompletemap = {(i+1):0 for i in xrange(len(annotation.items))}
-                exonstartmap = {(i+1):0 for i in xrange(len(annotation.items))}
-                exonendmap = {(i+1):0 for i in xrange(len(annotation.items))}
+                score = 0
                 for samline in samline_list:
-                    item_idx = 0
-                    for item in annotation.items:
-                        item_idx += 1
-                        if item.overlapsItem(startpos, endpos):
-                            exonhitmap[item_idx] += 1
-                            if item.equalsItem(startpos, endpos):
-                                exoncompletemap[item_idx] = 1
-                                exonstartmap[item_idx] = 1
-                                exonendmap[item_idx] = 1
-                            elif item.startsItem(startpos, endpos):
-                                exonstartmap[item_idx] = 1
-                            elif item.endsItem(startpos, endpos):
-                                exonendmap[item_idx] = 1
+                    start = samline.pos
+                    reflength = samline.CalcReferenceLengthFromCigar()
+                    end = start + reflength
+                    for item in cannotation.items:
+                        score + = item.basesInside(start, end)
 
-                            exon_cnt += 1
-                            expressed_genes[annotation.genename][item_idx] += 1
-                            gene_coverage[annotation.genename][item_idx] += item.basesInside(startpos, endpos)
-                            exonHit = True
-                            if item.insideItem(startpos, endpos):
-                                exonPartial = False
-                            else:
-                                exonPartial = True
+                if score > max_score:
+                    max_score = score
+                    best_match_annotation = cannotation
 
-                    # TODO: What to do if an exon is partially hit?
-                    # NOTE: Due to information in hit map and complete map
-                    #       This information might be unnecessary
-                    #       It can be deduced from exon maps
+        elif len(candidate_annotations) == 1:
+            best_match_annotation = candidate_annotations[0]
 
-                # Analyzing exon maps to extract some statistics
-                num_exons = len(annotation.items)
-                num_covered_exons = len([x for x in exonhitmap.values() if x > 0])       # Exons are considered covered if they are in the hit map
-                                                                                # This means that they only have to be overlapping with an alignment!
+        if best_match_annotation is not None:
+            annotation = best_match_annotation      # So that I dont have to refactzor the code
 
-                if num_covered_exons > 0:
-                    report.num_cover_some_exons += 1    # For alignments covering multiple genes, this will be calculated more than once
+            hit = True
 
-                if num_covered_exons == num_exons:
-                    report.num_cover_all_exons += 1
+            if num_alignments > len(annotation.items):
+                # TODO: BAD split!! Alignment is split, but annotation is not!
+                badsplit = True
+                # sys.stderr.write('\nWARNING: Bad split alignment with more parts then annotation has exons!\n')
 
-                num_equal_exons = len([x for x in exoncompletemap.values() if x > 0])
-                report.num_equal_exons += num_equal_exons
-                report.num_partial_exons += num_covered_exons - num_equal_exons
+            # Updating gene expression
+            # Since all initial values for expression and coverage are zero, this could all probably default to case one
+            if annotation.genename in expressed_genes.keys():
+                expressed_genes[annotation.genename][0] += 1
+                gene_coverage[annotation.genename][0] += annotation.basesInsideGene(startpos, endpos)
+            else:
+                expressed_genes[annotation.genename][0] = 1
+                gene_coverage[annotation.genename][0] = annotation.basesInsideGene(startpos, endpos)
 
-                # Exons covered by more than one part of a split alignment
-                multicover_exons = len([x for x in exonhitmap.values() if x > 1])
-                report.num_multicover_exons += multicover_exons
+            if annotation.insideGene(startpos, endpos):
+                partial = False
+            else:
+                partial = True
 
-                # Not sure what to do with this
-                report.num_undercover_alignments = 0
-                report.num_overcover_alignments = 0
+            # Initialize exon hit map and exon complete map (also start and end map)
+            # Both have one entery for each exon
+            # Hit map collects how many times has each exon been hit by an alignment (it should be one or zero)
+            # Complete map collects which exons have been completely covered by an alignement
+            # Start map collects which exons are correctly started by an alignment (have the same starting position)
+            # End map collects which exons are correctly ended by an alignment (have the same ending position)
+            # NOTE: test this to see if it slows the program too much
+            exonhitmap = {(i+1):0 for i in xrange(len(annotation.items))}
+            exoncompletemap = {(i+1):0 for i in xrange(len(annotation.items))}
+            exonstartmap = {(i+1):0 for i in xrange(len(annotation.items))}
+            exonendmap = {(i+1):0 for i in xrange(len(annotation.items))}
+            for samline in samline_list:
+                item_idx = 0
+                for item in annotation.items:
+                    item_idx += 1
+                    if item.overlapsItem(startpos, endpos):
+                        exonhitmap[item_idx] += 1
+                        if item.equalsItem(startpos, endpos):
+                            exoncompletemap[item_idx] = 1
+                            exonstartmap[item_idx] = 1
+                            exonendmap[item_idx] = 1
+                        elif item.startsItem(startpos, endpos):
+                            exonstartmap[item_idx] = 1
+                        elif item.endsItem(startpos, endpos):
+                            exonendmap[item_idx] = 1
 
-                # Exon start and end position
-                num_good_starts = len([x for x in exonstartmap.values() if x > 0])
-                num_good_ends = len([x for x in exonendmap.values() if x > 0])
-                report.num_good_starts += num_good_starts
-                report.num_good_ends += num_good_ends
+                        exon_cnt += 1
+                        expressed_genes[annotation.genename][item_idx] += 1
+                        gene_coverage[annotation.genename][item_idx] += item.basesInside(startpos, endpos)
+                        exonHit = True
+                        if item.insideItem(startpos, endpos):
+                            exonPartial = False
+                        else:
+                            exonPartial = True
 
-                isGood, isSpliced = isGoodSplitAlignment(exonhitmap, exoncompletemap, exonstartmap, exonendmap)
+                # TODO: What to do if an exon is partially hit?
+                # NOTE: Due to information in hit map and complete map
+                #       This information might be unnecessary
+                #       It can be deduced from exon maps
 
-                if isSpliced:
-                    report.num_possible_spliced_alignment += 1
+            # Analyzing exon maps to extract some statistics
+            num_exons = len(annotation.items)
+            num_covered_exons = len([x for x in exonhitmap.values() if x > 0])      # Exons are considered covered if they are in the hit map
+                                                                                    # This means that they only have to be overlapping with an alignment!
+            if num_covered_exons > 0:
+                report.num_cover_some_exons += 1    # For alignments covering multiple genes, this will be calculated more than once
 
-                if isGood:
-                    report.num_good_alignment += 1
-                else:
-                    report.num_bad_alignment += 1
+            if num_covered_exons == num_exons:
+                report.num_cover_all_exons += 1
 
+            num_equal_exons = len([x for x in exoncompletemap.values() if x > 0])
+            report.num_equal_exons += num_equal_exons
+            report.num_partial_exons += num_covered_exons - num_equal_exons
 
-        if exon_cnt > 1:
-            report.num_multi_exon_alignments += 1
-        elif exon_cnt == 0:
-            report.num_cover_no_exons += 1
+            # Exons covered by more than one part of a split alignment
+            multicover_exons = len([x for x in exonhitmap.values() if x > 1])
+            report.num_multicover_exons += multicover_exons
 
-        if len(genescovered) > 1:
-            report.num_multi_gene_alignments += 1
+            # Not sure what to do with this
+            report.num_undercover_alignments = 0
+            report.num_overcover_alignments = 0
 
-        if badsplit:
-            report.num_bad_split_alignments += 1
+            # Exon start and end position
+            num_good_starts = len([x for x in exonstartmap.values() if x > 0])
+            num_good_ends = len([x for x in exonendmap.values() if x > 0])
+            report.num_good_starts += num_good_starts
+            report.num_good_ends += num_good_ends
 
-        if hit and not partial:
-            report.num_hit_alignments += 1
-        elif hit and partial:
-            report.num_partial_alignments += 1
+            isGood, isSpliced = isGoodSplitAlignment(exonhitmap, exoncompletemap, exonstartmap, exonendmap)
+
+            if isSpliced:
+                report.num_possible_spliced_alignment += 1
+
+            if isGood:
+                report.num_good_alignment += 1
+            else:
+                report.num_bad_alignment += 1
+
+            if exon_cnt > 1:
+                report.num_multi_exon_alignments += 1
+            elif exon_cnt == 0:
+                report.num_cover_no_exons += 1
+
+            if len(genescovered) > 1:
+                report.num_multi_gene_alignments += 1
+
+            if badsplit:
+                report.num_bad_split_alignments += 1
+
+            if hit and not partial:
+                report.num_hit_alignments += 1
+            elif hit and partial:
+                report.num_partial_alignments += 1
+            else:
+                report.num_missed_alignments += 1
+
+            if exonHit and not exonPartial:
+                report.num_exon_hit += 1
+            elif exonHit and exonPartial:
+                report.num_exon_partial += 1
+            else:
+                report.num_exon_miss += 1
+
+            if hit and not exonHit:
+                report.num_inside_miss_alignments += 1
+
+            if len(genescovered) == 1 and not badsplit:
+                report.num_good_alignment += 1
+            else:
+                report.num_bad_alignment += 1
+
         else:
-            report.num_missed_alignments += 1
-
-        if exonHit and not exonPartial:
-            report.num_exon_hit += 1
-        elif exonHit and exonPartial:
-            report.num_exon_partial += 1
-        else:
-            report.num_exon_miss += 1
-
-        if hit and not exonHit:
-            report.num_inside_miss_alignments += 1
-
-        if len(genescovered) == 1 and not badsplit:
-            report.num_good_alignment += 1
-        else:
-            report.num_bad_alignment += 1
+            # No matching annotations were found
+            # TODO: Check if anything needs to be done here
 
     out_q.put([report, expressed_genes, gene_coverage])
     sys.stdout.write('\nEnding process %d...\n' % proc_id)
