@@ -218,7 +218,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 # Transform split alignments containing Ns into multiple alignments with clipping
                 temp_samline_list = []
                 posread = 0
-                posref = 0
+                posref = 0      # NOTE: I don't seem to be using this, probably should remove it
                 newcigar = ''
                 readlength = samline_list[0].CalcReadLengthFromCigar()
                 new_samline = copy.deepcopy(samline_list[0])
@@ -226,7 +226,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 clipped_bases = new_samline.pos - new_samline.clipped_pos
                 for op in operations:
                     if op[1] == 'N' and int(op[0]) > 1:        # Create a new alignment with clipping
-                        newcigar += '%dH' % (readlength - posread)
+                        newcigar += '%dS' % (readlength - posread)
                         new_samline.cigar = newcigar
                         # After some deliberation, I concluded that this samline doesn't have to have its position changed
                         # The next samline does, and by the size of N operation in cigar string
@@ -236,7 +236,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                         new_samline.pos = mapping_pos
                         new_samline.clipped_pos = new_samline.pos - clipped_bases
                         posref += int(op[0])
-                        newcigar = '%dH' % posread
+                        newcigar = '%dS' % posread
                     else:                   # Expand a current alignment
                         newcigar += op[0] + op[1]
                         if op[1] in ('D', 'N'):
@@ -247,6 +247,13 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                             # Therefore have to adjust both pos and clipped pos
                             clipped_bases += int(op[0])
                             mapping_pos += int(op[0])
+                        elif op[1] in ('S', 'H'):
+                            # Clipped bases can not appear in the middle of the original cigar string
+                            # And they have already been added to the position,
+                            # so I shouldn't adjust my mapping_pos and clipped_bases again
+                            # TODO: I should probably diferentiate between hars and soft clipping
+                            posread += int(op[0])
+                            posref += int(op[0])
                         else:
                             posref += int(op[0])
                             posread += int(op[0])
