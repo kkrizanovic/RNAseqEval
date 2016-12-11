@@ -466,7 +466,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                     reflength = samline.CalcReferenceLengthFromCigar()
                     end = start + reflength
                     for item in cannotation.items:
-                        score + = item.basesInside(start, end)
+                        score += item.basesInside(start, end)
 
                 if score > max_score:
                     max_score = score
