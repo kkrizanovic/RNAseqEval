@@ -224,30 +224,36 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 new_samline = copy.deepcopy(samline_list[0])
                 mapping_pos = new_samline.pos
                 clipped_bases = new_samline.pos - new_samline.clipped_pos
+                hclip_seq = 0        # Used with hard clipping, how big part of sequence should be removed
+                clip_type = 'S'     # Soft_clipping by default
                 for op in operations:
                     if op[1] == 'N' and int(op[0]) > 1:        # Create a new alignment with clipping
-                        newcigar += '%dS' % (readlength - posread)
+                        newcigar += '%dS' % (readlength - posread)      # Always use soft clipping at the end
                         new_samline.cigar = newcigar
                         # After some deliberation, I concluded that this samline doesn't have to have its position changed
-                        # The next samline does, and by the size of N operation in cigar string
-                        mapping_pos += int(op[0])
+                        # The next samline does, and by the size of N operation in cigar string + any operations before
                         temp_samline_list.append(new_samline)
                         new_samline = copy.deepcopy(samline_list[0])
+                        mapping_pos += int(op[0])
                         new_samline.pos = mapping_pos
                         new_samline.clipped_pos = new_samline.pos - clipped_bases
                         posref += int(op[0])
-                        newcigar = '%dS' % posread
+                        if clip_type == 'H':
+                            new_samline.seq = new_samline.seq[hclip_seq:]
+                        newcigar = '%d%c' % (posread, clip_type)
                     else:                   # Expand a current alignment
                         newcigar += op[0] + op[1]
                         if op[1] in ('D', 'N'):
                             posref += int(op[0])
+                            mapping_pos += int(op[0])
                         elif op[1] == 'I':
                             posread += int(op[0])
-                            # Everythin besided deletes and Ns will be clipped in the next partial alignment
+                            # Everything besides deletes and Ns will be clipped in the next partial alignment
                             # Therefore have to adjust both pos and clipped pos
                             clipped_bases += int(op[0])
-                            mapping_pos += int(op[0])
+                            hclip_seq += int(op[0])
                         elif op[1] in ('S', 'H'):
+                            clip_type = op[1]
                             # Clipped bases can not appear in the middle of the original cigar string
                             # And they have already been added to the position,
                             # so I shouldn't adjust my mapping_pos and clipped_bases again
@@ -259,6 +265,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                             posread += int(op[0])
                             clipped_bases += int(op[0])
                             mapping_pos += int(op[0])
+                            hclip_seq += int(op[0])
 
                 new_samline.cigar = newcigar
                 temp_samline_list.append(new_samline)
