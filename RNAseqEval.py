@@ -420,7 +420,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         # - check for genes that it intersects
         # - then iterate over parts of alignment and exons to evaluate how well the alignment captures the transcript
 
-        # Calculating total alignment reference length for all parts of a  split read
+        # Calculating total alignment reference length for all parts of a split read
         # A distance between the start of the first alignment and the end of the last alignment
         # If all split alignments of the read were sorted according to position, this could be done faster
         readrefstart = -1
@@ -519,24 +519,27 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             exonendmap = {(i+1):0 for i in xrange(len(annotation.items))}
             for samline in samline_list:
                 item_idx = 0
+                lstartpos = samline.pos
+                reflength = samline.CalcReferenceLengthFromCigar()
+                lendpos = lstartpos + reflength
                 for item in annotation.items:
                     item_idx += 1
-                    if item.overlapsItem(startpos, endpos):
+                    if item.overlapsItem(lstartpos, lendpos):
                         exonhitmap[item_idx] += 1
-                        if item.equalsItem(startpos, endpos):
+                        if item.equalsItem(lstartpos, lendpos):
                             exoncompletemap[item_idx] = 1
                             exonstartmap[item_idx] = 1
                             exonendmap[item_idx] = 1
-                        elif item.startsItem(startpos, endpos):
+                        elif item.startsItem(lstartpos, lendpos):
                             exonstartmap[item_idx] = 1
-                        elif item.endsItem(startpos, endpos):
+                        elif item.endsItem(lstartpos, lendpos):
                             exonendmap[item_idx] = 1
 
                         exon_cnt += 1
                         expressed_genes[annotation.genename][item_idx] += 1
-                        gene_coverage[annotation.genename][item_idx] += item.basesInside(startpos, endpos)
+                        gene_coverage[annotation.genename][item_idx] += item.basesInside(lstartpos, lendpos)
                         exonHit = True
-                        if item.insideItem(startpos, endpos):
+                        if item.insideItem(lstartpos, lendpos):
                             exonPartial = False
                         else:
                             exonPartial = True
