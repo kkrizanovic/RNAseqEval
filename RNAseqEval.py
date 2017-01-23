@@ -39,7 +39,8 @@ paramdefs = {'-a' : 1,
              '-ex' : 0,
              '--expression' : 0,
              '-as' : 0,
-             '--alternate_splicing' : 0}
+             '--alternate_splicing' : 0,
+             '--print_erroneous_reads' : 0}
 
 
 def cleanup():
@@ -202,8 +203,11 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
     # Reorganizing SAM lines, removing unmapped queries, leaving only the first alignment and
     # other alignments that possibly costitute a split alignment together with the first one
     samlines = []
-    for samline_list in sam_hash.itervalues():
-        if samline_list[0].cigar <> '*':            # if the first alignment doesn't have a regular cigar string, skip
+    cnt = 0
+    # for samline_list in sam_hash.itervalues():
+    for (samline_key, samline_list) in sam_hash.iteritems():
+        cnt += 1
+        if samline_list[0].cigar <> '*' and samline_list[0].cigar <> '':            # if the first alignment doesn't have a regular cigar string, skip
             pattern = '(\d+)(.)'
             operations = re.findall(pattern, samline_list[0].cigar)
             split = False
@@ -431,14 +435,25 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             reflength = samline.CalcReferenceLengthFromCigar()
             end = start + reflength
 
-            if readrefstart == -1 or readrefstart < start:
+            if readrefstart == -1 or readrefstart > start:
                 readrefstart = start
-            if readrefend == -1 or readrefend > end:
+            if readrefend == -1 or readrefend < end:
                 readrefend = end
 
         readreflength = readrefend - readrefstart
         startpos = readrefstart
         endpos = readrefend
+
+        # An experiment that now seems unnecessary
+        # if readrefstart < readrefend:
+        #     startpos = readrefstart
+        #     endpos = readrefend
+        # else:
+        #     startpos = readrefend
+        #     endpos = readrefstart
+
+        if startpos > endpos:
+            sys.stderr.write('\nERROR invalid start/end calculation: %s (%d, %d)' % (samline_list[0].qname, startpos, endpos))
 
         # Assuming all samlines in samline_list have the same strand
         if samline_list[0].flag & 16 == 0:
@@ -455,6 +470,11 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         candidate_annotations = []
         best_match_annotation = None
         for annotation in annotations:
+            # Testing
+            #if chromname != getChromName(annotation.seqname):
+            #    sys.stderr.write('\nERROR, different chromosome name in mapping and annotation: %s / %s' % (chromname, getChromName(annotation.seqname)))
+            #if readstrand != annotation.strand:
+            #    sys.stderr.write('\nERROR, different strand in mapping and annotation: %s / %s' % (readstrand, annotation.strand))
             # If its the same chromosome, the same strand and the read and the gene overlap, then proceed with analysis
             if chromname == getChromName(annotation.seqname) and readstrand == annotation.strand and annotation.overlapsGene(startpos, endpos):
                 candidate_annotations.append(annotation)
@@ -623,7 +643,9 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         else:
             # No matching annotations were found
             # TODO: Check if anything needs to be done here
-            pass
+            # sys.stderr.write('\nNo matching annotations for %s' % samline_list[0].qname)
+            report.num_cover_no_exons += 1
+
 
     out_q.put([report, expressed_genes, gene_coverage])
     sys.stdout.write('\nEnding process %d...\n' % proc_id)
@@ -707,6 +729,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         for samline in samline_list:
             chromname = getChromName(samline.rname)
             if chromname not in chromname2seq:
+                import pdb
+                pdb.set_trace()
                 raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
             chromidx = chromname2seq[chromname]
 
