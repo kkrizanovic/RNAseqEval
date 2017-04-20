@@ -35,6 +35,16 @@ simFolderDict_all = {'SimG1' : 'group1'
                   , 'SimG3AS' : 'group3_AS'
                   , 'SimG3SS' : 'group3_SS'}
 
+simFolderDict_all = {'SimG1' : 'group1'
+                   , 'SimG2' : 'group2'
+                   , 'SimG3' : 'group3'
+                   , 'SimG1AS' : 'group1_AS'
+                   , 'SimG1SS' : 'group1_SS'
+                   , 'SimG2AS' : 'group2_AS'
+                   , 'SimG2SS' : 'group2_SS'
+                   , 'SimG3AS' : 'group3_AS'
+                   , 'SimG3SS' : 'group3_SS'}
+
 # A dictionary connecting fasta/fastq header prefix with the folder with pbsim generated data
 # Containing information for reads with each prefix
 # This is used because data is simulated using several pbsim runs to get different
