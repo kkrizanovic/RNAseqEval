@@ -256,7 +256,7 @@ def processData(datafolder, resultfile, annotationfile):
 
         # Calculating expected partial alignmetns from MAF and annotations
 
-        # Saving "maf_length" fo be able to check it later
+        # Saving "maf_length" to be able to check it later
         t_maf_length = maf_length
 
         # 1. Calculating the index of the first exon
@@ -438,6 +438,9 @@ def processData(datafolder, resultfile, annotationfile):
         # I'm allowing one start and one end not to match starts and ends of exons
         if (num_hits == num_partial_alignements) and (num_start_hits + num_end_hits >= 2*num_partial_alignements - 2) :
             s_num_good_alignments += 1
+        else:
+            import pdb
+            pdb.set_trace()
 
         if whole_alignment_hit:
             s_whole_alignment_hits += 1
