@@ -28,4 +28,12 @@ How to run:
  
     Process_pbsim_data.py process simulation_root_folder mappings.sam annotations.bed
 
-The script is written so that it can evaluate a file obtained from several simulations. Pbsim output folders must be within the simulation_root_folder, and a dictionary simFolderDict should be modified within the script to connect each simualted read header with the corresponding pbsim output folder.
+The script is written so that it can evaluate a file obtained from several simulations. Each simulation can use different coverage, but needs to use the same reference genome. Reads simulated within a single simulation need to have the same FASTA header prefix. All Pbsim output folders (for different simulations) must be within the simulation_root_folder, and a dictionary simFolderDict (inside Process_pbsim_data.py script) should be modified to connect each simualted read header with the corresponding pbsim output folder.
+
+### Example
+Lets assume that we use three simulations, Pbsim output folders are named group1, group2 and group3, and header prefixes for eache simulation's reads are SimG1, SimG2 and SimG3 respectively.
+Then all three simulation folders must be placed directly within simulation_root_folder and the dictionary simFolderDict, within the Process_pbsim_data.py script, must be definied as:
+
+    simFolderDict = {'SimG1' : 'group1'
+                   , 'SimG2' : 'group2'
+                   , 'SimG3' : 'group3'}
