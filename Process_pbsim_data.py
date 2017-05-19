@@ -438,9 +438,10 @@ def processData(datafolder, resultfile, annotationfile):
         # I'm allowing one start and one end not to match starts and ends of exons
         if (num_hits == num_partial_alignements) and (num_start_hits + num_end_hits >= 2*num_partial_alignements - 2) :
             s_num_good_alignments += 1
-        else:
-            import pdb
-            pdb.set_trace()
+        # else:
+        #     if num_hits > 0:
+        #         import pdb
+        #         pdb.set_trace()
 
         if whole_alignment_hit:
             s_whole_alignment_hits += 1
@@ -467,15 +468,15 @@ def processData(datafolder, resultfile, annotationfile):
     sys.stdout.write('\nPartial alignments on strand (FW / RV): (%d / %d)' % (s_num_fw_strand, s_num_rv_strand))
     sys.stdout.write('\nPotential bad strand alignments: %d' % s_num_potential_bad_strand)
     sys.stdout.write('\nMAF: Suspicious alignments: %d' % s_maf_suspicious_alignments)
-    sys.stdout.write('\nMAF: Good alignments: %d' % s_maf_good_alignments)
-    sys.stdout.write('\nMAF: Bad alignments: %d' % s_maf_bad_alignments)
+    sys.stdout.write('\nMAF: Hit both ends: %d' % s_maf_good_alignments)
+    sys.stdout.write('\nMAF: Didn\'t hit both ends: %d' % s_maf_bad_alignments)
     sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part: %d' % s_maf_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part: %d' % s_maf_eq_one_part)
     sys.stdout.write('\nMAF: Multihit parts (fragmented) alignments: %d' % s_maf_multihit_parts)
     sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
-    sys.stdout.write('\nMAF: Good SPLIT alignments: %d' % s_maf_good_split_alignments)
-    sys.stdout.write('\nMAF: Bad SPLIT alignments: %d' % s_maf_bad_split_alignments)
+    sys.stdout.write('\nMAF: Hit both ends, SPLIT alignments: %d' % s_maf_good_split_alignments)
+    sys.stdout.write('\nMAF: Didn\'t hit both ends, SPLIT alignments: %d' % s_maf_bad_split_alignments)
     sys.stdout.write('\nMAF: Hit all parts on split read: %d' % s_maf_split_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part on split read: %d' % s_maf_split_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part on split read: %d' % s_maf_split_eq_one_part)
