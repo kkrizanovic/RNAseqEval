@@ -8,6 +8,7 @@ How to run:
   
      generate_transcriptome.py annotations.gff reference.fasta transcriptome.fasta
 
+Generated transcriptome can be used to simulate RNA reads using DNA simulators such as PBSim.
 
 ## RNAseqEval
 Run RNAseqEval.py for general evaulation of mappings in sam file against reference and optionally annotations. Run RNAseqEval.py without any arguments to print options.
