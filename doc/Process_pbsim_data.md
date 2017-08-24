@@ -5,9 +5,6 @@ Usage example:
  
     Process_pbsim_data.py process simulation_root_folder mappings.sam annotations.bed
 
-## Output
-[TODO:]
-
 ## Evaluating a complex simulated dataset
 The script is written so that it can evaluate a file obtained from several simulations. Each simulation can use different coverage, but needs to use the same reference genome. Reads simulated within a single simulation need to have the same FASTA header prefix. All PBSIM output folders (for different simulations) must be within the simulation_root_folder, and a dictionary simFolderDict (inside Process_pbsim_data.py script) should be modified to connect each simualted read header with the corresponding pbsim output folder.
 
@@ -18,3 +15,6 @@ Then all three simulation folders must be placed directly within simulation_root
     simFolderDict = {'SimG1' : 'group1'
                    , 'SimG2' : 'group2'
                    , 'SimG3' : 'group3'}
+
+## Output
+[TODO:]
