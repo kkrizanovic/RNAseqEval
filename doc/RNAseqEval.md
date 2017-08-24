@@ -31,7 +31,7 @@ Allowed options:
 
     -o (--output) <file> : output file to which the report will be written
 
-# eval-maplength
+### eval-maplength
 Used in eval-maplength mode, RNAseqEval script will return mapped percentage for each read
 
 Usage:
@@ -43,3 +43,16 @@ Options:
     -o (--output) <file> : output file to which the report will be written
 
 ## Output
+Depending on the usage mode, RNAseqEval.py script will display various information about input files and the results of the analysis.
+
+General information on FASTA reference and mapping SAM file:
+
+     Reference length
+     Number of chromosomes
+     List of chromosomes
+     Number of alignments in SAM file (total / unique)
+     Alignments with / without CIGAR string
+     Mapping quality without zeroes (avg / min / max)
+     Alignments with mapping quality (>0 / =0)
+     Number of matches / mismatches / inserts / deletes
+     Percentage of matches / mismatches / inserts / deletes
