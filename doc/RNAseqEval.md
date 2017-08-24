@@ -48,18 +48,47 @@ Oposed to first two modes which calculate certain statistical information from i
 - read length (header "read length")
 - the number of bases aligned for that read (header "bases aligned")
 
-## Output eval-mapping and eval-annotations
+## Output for eval-mapping and eval-annotations modes
 Depending on the usage mode, RNAseqEval.py script will display various information about input files and the results of the analysis.
 
 General information on FASTA reference and mapping SAM file:
-- Reference length - In eval-mapping mode this will be the total lenght of all chromosomes in a FASTA rederence, while in eval-annotations mode this will be the total length of all genes.
-- Number of chromosomes
-- List of chromosomes
-- Number of alignments in SAM file (total / unique)
-- Alignments with / without CIGAR string
-- Mapping quality without zeroes (avg / min / max)
-- Alignments with mapping quality (>0 / =0)
-- Number of matches / mismatches / inserts / deletes
-- Percentage of matches / mismatches / inserts / deletes
 
-Annotation statistics
+    - Reference length - In eval-mapping mode this will be the total lenght of all chromosomes in a FASTA rederence, while in eval-annotations mode this will be the total length of all genes.
+    - Number of chromosomes
+    - List of chromosomes
+    - Number of alignments in SAM file (total / unique)
+    - Alignments with / without CIGAR string
+    - Mapping quality without zeroes (avg / min / max)
+    - Alignments with mapping quality (>0 / =0)
+    - Number of matches / mismatches / inserts / deletes
+    - Percentage of matches / mismatches / inserts / deletes
+
+Annotation statistics:
+
+    - Total gene length
+    - Total number of transcripts
+    - Total number of exons
+    - Number of multiexon transcripts
+    - Maximum number of exons in a gene
+    - Gene size (Min / Max / Avg)
+    - Exon size (Min / Max / Avg)
+
+Annotations that are on the same chromosome and strand and that overlap each other are grouped into annotation groups. Each group should represent a gene, while each annotation in a group should represent one possible splicing for that gene.
+
+    - Number of annotation groups (genes)
+    - Number of genes with alternate splicing
+    - Maximum / minimum number of alternate spliced alignments for a gene
+    - Maximum / minimum number of exons in spliced alignments
+
+Mapping quality information obtained by comparing alignements in a SAM file to given annotations.
+
+     - Total number and percentage of bases aligned for all reads
+     - The number of transcripts (annotations) "hit" by all reads
+     - Total number of exons "hit" by all reads
+     - Alignments on transcript hit / missed = %d / %d / %d
+     - Alignments on exons hit / missed = %d / %d / %d
+     - Alignments hitting an exon (start / end / both) = %d / %d / %d
+     - Avg. alignment hit percentage = %.2f
+     - Avg. exon hit percentage = %.2f
+     - Contiguous / non contiguous alignments: %d (%.2f%%) / %d (%.2f%%)
+
