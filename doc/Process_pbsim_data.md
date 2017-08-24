@@ -17,4 +17,25 @@ Then all three simulation folders must be placed directly within simulation_root
                    , 'SimG3' : 'group3'}
 
 ## Output
-[TODO:]
+Process_pbsim_daty.py scripts generates a report containing following information:
+
+    Number of original SAM lines (in the input SAM file)
+    Number of usable whole alignments (with valid CIGAR string)
+    Number of annotations
+    Number of multiexon genes
+
+    Number of reads aligned to a start of an exon
+    Number of reads aligned to an end of an exon
+    Number of reads aligned to both, start and end of an exon
+    Number of good whole alignments
+
+    Number of alignments that hit both ends
+    Number of alignments that hit all parts
+    Number of alignments that hit at least one part
+    Number of alignments that equals at least one part
+
+    Number of split reads
+    Number of alignments that hit both ends, for SPLIT reads only
+    Number of alignments that hit all parts, for SPLIT reads only
+    Number of alignments that hit at least one part, SPLITfor SPLIT reads only
+    Number of alignments that equals at least one part, for SPLIT reads only
