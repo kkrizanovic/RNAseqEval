@@ -80,15 +80,21 @@ Annotations that are on the same chromosome and strand and that overlap each oth
     - Maximum / minimum number of alternate spliced alignments for a gene
     - Maximum / minimum number of exons in spliced alignments
 
-Mapping quality information obtained by comparing alignements in a SAM file to given annotations.
+Mapping quality information obtained by comparing alignements in a SAM file to given annotations. Only in eval-mapping mode if annotations are provided.
 
      - Total number and percentage of bases aligned for all reads
      - The number of transcripts (annotations) "hit" by all reads
      - Total number of exons "hit" by all reads
-     - Alignments on transcript hit / missed = %d / %d / %d
-     - Alignments on exons hit / missed = %d / %d / %d
-     - Alignments hitting an exon (start / end / both) = %d / %d / %d
-     - Avg. alignment hit percentage = %.2f
-     - Avg. exon hit percentage = %.2f
-     - Contiguous / non contiguous alignments: %d (%.2f%%) / %d (%.2f%%)
+     - Number of alignments with "hit" on transcripts
+     - Number of alignments with "hit" on exons
+     - Number of alignments matching a beginning and an end of an exon
+     - Number of contiguous and non contiguous alignments
 
+The script also calculates gene expression and gene/exon coverage information. this information is printed only in eval-mapping mode if annotations are provided. The script will output the number of expressed transcripts. A transcript is considered expressed if at least one read is mapped to its position. For each transcript, the script also prints out the following :
+- transcript name
+- number of exons
+- number of reads that align to it
+- total number of bases aligned to it
+- for each exon in the transcript
+     - number of reads aligned to it
+     - total number of bases aligned to it
