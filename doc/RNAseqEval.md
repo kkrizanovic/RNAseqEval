@@ -5,12 +5,41 @@ Usage:
      
     RNAseqEval.py eval-mapping <reference FASTA file> <input SAM file> options
 
-    options:
+## Usage modes
+RNAseqEval.py script can be used in three differents modes, determined by the first argument. Each mode requires different parameters and allowes different options.
+
+### eval-mapping
+Used in eval-mapping mode, RNAseqEval.py script is used to evaluate RNAseq mappings against known FASTA reference and annotations. Annotations can be omitted, but in that case the script will provide only basic output.
+
+Usage:
+
+    RNAseqEval.py eval-mapping <reference FASTA file> <input SAM file> options
+    
+Allowed options:
+
     -a <file> : a reference annotation (GFF/GTF/BED) file
     -o (--output) <file> : output file to which the report will be written
 
-## Usage modes
+### eval-annotations
+Used in eval-annotations mode, RNAseqEval.py script will print out basic information on a annotations file.
 
-## Options
+Usage:
+
+    RNAseqEval.py eval-annotations <annotations file> options
+
+Allowed options:
+
+    -o (--output) <file> : output file to which the report will be written
+
+# eval-maplength
+Used in eval-maplength mode, RNAseqEval script will return mapped percentage for each read
+
+Usage:
+
+    RNAseqEval.py eval-maplength <input SAM file> options
+
+Options:
+
+    -o (--output) <file> : output file to which the report will be written
 
 ## Output
