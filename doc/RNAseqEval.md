@@ -90,11 +90,12 @@ Mapping quality information obtained by comparing alignements in a SAM file to g
      - Number of alignments matching a beginning and an end of an exon
      - Number of contiguous and non contiguous alignments
 
-The script also calculates gene expression and gene/exon coverage information. this information is printed only in eval-mapping mode if annotations are provided. The script will output the number of expressed transcripts. A transcript is considered expressed if at least one read is mapped to its position. For each transcript, the script also prints out the following :
-- transcript name
-- number of exons
-- number of reads that align to it
-- total number of bases aligned to it
-- for each exon in the transcript
-     - number of reads aligned to it
-     - total number of bases aligned to it
+The script also calculates gene expression and gene/exon coverage information. this information is printed only in eval-mapping mode if annotations are provided. The script will output the number of expressed transcripts. A transcript is considered expressed if at least one read is mapped to its position. For each transcript, the script also prints out the following:
+
+    - transcript name
+    - number of exons
+    - number of reads that align to it
+    - total number of bases aligned to it
+    - for each exon in the transcript
+         - number of reads aligned to it
+         - total number of bases aligned to it
