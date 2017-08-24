@@ -42,17 +42,24 @@ Options:
 
     -o (--output) <file> : output file to which the report will be written
 
-## Output
+Oposed to first two modes which calculate certain statistical information from input files, in eval-maplength mode the script will print out information on each read in CSV format (on the screen or in a file). The folowinf information is printed out:
+- readname name (header "QNAME")
+- reference name (header "RNAME")
+- read length (header "read length")
+- the number of bases aligned for that read (header "bases aligned")
+
+## Output eval-mapping and eval-annotations
 Depending on the usage mode, RNAseqEval.py script will display various information about input files and the results of the analysis.
 
 General information on FASTA reference and mapping SAM file:
+- Reference length - In eval-mapping mode this will be the total lenght of all chromosomes in a FASTA rederence, while in eval-annotations mode this will be the total length of all genes.
+- Number of chromosomes
+- List of chromosomes
+- Number of alignments in SAM file (total / unique)
+- Alignments with / without CIGAR string
+- Mapping quality without zeroes (avg / min / max)
+- Alignments with mapping quality (>0 / =0)
+- Number of matches / mismatches / inserts / deletes
+- Percentage of matches / mismatches / inserts / deletes
 
-     Reference length
-     Number of chromosomes
-     List of chromosomes
-     Number of alignments in SAM file (total / unique)
-     Alignments with / without CIGAR string
-     Mapping quality without zeroes (avg / min / max)
-     Alignments with mapping quality (>0 / =0)
-     Number of matches / mismatches / inserts / deletes
-     Percentage of matches / mismatches / inserts / deletes
+Annotation statistics
