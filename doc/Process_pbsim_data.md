@@ -31,12 +31,16 @@ Evaluating mapping quality for a complex dataset, constructed from multiple simu
 - A dictionary simFolderDict (inside Process_pbsim_data.py script) must contain the connection between read header prefix belonging to a simulation and the corresponding pbsim output folder placed within the simulation_root_folder. An example of simFolderDict definition used for our RNA benchmark is given in [RNAseq_benchmark.py](RNAseq_benchmark.py).
 
 ## Evaluation example
-Lets suppose that we wish to use three simulations to construct a synthetic dataset. We generate 3 sets of transcripts for the same genome and run a simulation on each of them. PBSIM output folders for each simulation are named group1, group2 and group3 and are placed within a folder named complex_simulation. Header prefixes for each simulation reads are SimG1, SimG2 and SimG3 respectively.
-Then all three simulation folders must be placed directly within simulation_root_folder and the dictionary simFolderDict, within the Process_pbsim_data.py script, must be definied as:
+Lets suppose that we wish to use three simulations to construct a synthetic dataset. We generate 3 sets of transcripts for the same genome and run a simulation on each of them. PBSIM output folders for each simulation are named group1, group2 and group3 and are placed within a folder named complex_simulation. Header prefixes for each simulation reads are SimG1, SimG2 and SimG3 respectively. 
+Dictionary simFolderDict, within the Process_pbsim_data.py script, must be definied as:
 
     simFolderDict = {'SimG1' : 'group1'
                    , 'SimG2' : 'group2'
                    , 'SimG3' : 'group3'}
+
+The evaluation is run as follows:
+
+    Process_pbsim_data.py process complex_simulation  mappings.sam annotations.bed
 
 ## Output
 Process_pbsim_daty.py scripts generates a report containing following information:
