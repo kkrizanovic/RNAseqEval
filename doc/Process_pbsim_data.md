@@ -42,6 +42,8 @@ The evaluation is run as follows:
 
     Process_pbsim_data.py process complex_simulation  mappings.sam annotations.bed
 
+A detailed description of the process used to prepare simulated datasets for our RNA benchmark is given in [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md).
+
 ## Output
 Process_pbsim_daty.py scripts generates a report containing following information:
 
