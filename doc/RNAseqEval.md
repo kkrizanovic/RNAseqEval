@@ -22,11 +22,14 @@ The script evaluates one read (alignment) at a time, and for each read (alignmen
      - Exon end map - the end of which exon is covered by the alignment
 4. Using those four maps, several metrics of similaty between the alignments and the anotation are calculated. The most importan metric is whether the alignment is contiguous or not.
 
-Contiguous alignment represent a read that is correctly aligned to the referece genome or more precisely to the _best_match_annotation_. It covers a contiguous subset of exons from the annotation. It can skip one or more exons at the start and skip one or more exons at the end. However, if two exons are covered by an alignment, all exons between those two must also be covered for that alignment to be contiguous.
+_Contiguous alignment_ represent a read that is correctly aligned to the referece genome or more specifically to the _best_match_annotation_. It covers a contiguous subset of exons from the annotation. Whether an alignment is contiguous is determined using the _hit maps_ calculated in the step 4. Contiguous alignments can skip (not overlap) one or more exons at the start and skip one or more exons at the end. However, if two exons are overlapped by the alignment, all exons between those two must also be overlapped for the alignment to be contiguous. This is determined by applying the following rules:
+- Exon _hit map_ must not have _holes_ in the middle. 
+- Internal _hit_ (or overlapped) exons must exactly match the alignment. 
+- The alignment must match the end of the first exon in the _hit map_ and it must match the start of the last exon in the _hit map_.
 
 The script works in multiple threads and will spawn one thread for each cromosome and strand, and will examine anotations and alignments that strand and chromosome, thus significantly speeding up the analysis. 
 
-__IMPORTANT:__ When making calculations, an error of 5 bases is premitted. Similarly, for an overlap to be valid it has to be at least 5 bases.
+__IMPORTANT:__ When making calculations, an error of 5 bases is premitted. Similarly, for an overlap to be valid it has to be at least 5 bases. This can be altered by changing the value of the DEFAULT_ALLOWED_INACCURACY constant in the Annotation_formats.py. In the next version of the RNAseqEval tool, this will be one of the adjustable parameters.
 
 ## Usage modes
 RNAseqEval.py script can be used in three differents modes, determined by the first argument. Each mode requires different parameters and allowes different options.
