@@ -1,9 +1,23 @@
 # RNAseqEval.py
-Run RNAseqEval.py for general evaulation of mappings in sam file against reference and optionally annotations. This script is intended to evaluate real dataset mapping. Run RNAseqEval.py without any arguments to print options.
+Run RNAseqEval.py for general evaulation of mappings in SAM format against reference and optionally annotations. This script is intended to evaluate real dataset mapping. Run RNAseqEval.py without any arguments to print options.
 
-Usage example:
+Usage:
      
     RNAseqEval.py eval-mapping <reference FASTA file> <input SAM file> options
+
+## Evaluation method
+Eventhough it allows other usage, the main purpose of RNAseqEval.py script is to evaluate the quality of RNA alignments by comparing them to a set of annotations and a reference genome. It's intended use is for real data, for which exact origin of each read is not known. To use the script in this way, it has to be run in eval-mapping mode (see below), with reference genome and mapping in SAM format as required inputs, and with annotations as extra input (-a option).
+
+Example for using RNAseqEval.py to evaluate mappings agains annotations and a reference genome:
+
+    RNAseqEval.py eval-mapping dmelanogaster_genome.fa mappings.sam -a dmelanogaster_annotations.gtf
+
+The script evaluates one read (alignment) at a time, and for each read (alignment) goes through the following steps:
+1. Find all candidate annotations (annotations with which the alignment overlaps, looking only at start and end of complete annotation to speed the process up)
+2. Compare the alignment to all candidate annotations in more detail and find the one with whom the alignment has the largest overlap. Ths annotations is termed _best_match_annotation._
+3. Determine 
+
+The script works in multiple threads and will spawn one thread for each cromosome and strand, and will examine anotations and alignments that strand and chromosome, thus significantly speeding up the analysis. 
 
 ## Usage modes
 RNAseqEval.py script can be used in three differents modes, determined by the first argument. Each mode requires different parameters and allowes different options.
