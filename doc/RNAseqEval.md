@@ -15,9 +15,18 @@ Example for using RNAseqEval.py to evaluate mappings agains annotations and a re
 The script evaluates one read (alignment) at a time, and for each read (alignment) goes through the following steps:
 1. Find all candidate annotations (annotations with which the alignment overlaps, looking only at start and end of complete annotation to speed the process up)
 2. Compare the alignment to all candidate annotations in more detail and find the one with whom the alignment has the largest overlap. Ths annotations is termed _best_match_annotation._
-3. Determine 
+3. Determine the match between the alignments and the _best_match_annotation_ by calculating four maps:
+     - Exon hit map - which exons are overlapped by the alignment
+     - Exon complete map - which exons exactly match a part of alignment
+     - Exon start map - the start of which exon is covered by the alignments
+     - Exon end map - the end of which exon is covered by the alignment
+4. Using those four maps, several metrics of similaty between the alignments and the anotation are calculated. The most importan metric is whether the alignment is contiguous or not.
+
+Contiguous alignment represent a read that is correctly aligned to the referece genome or more precisely to the _best_match_annotation_. It covers a contiguous subset of exons from the annotation. It can skip one or more exons at the start and skip one or more exons at the end. However, if two exons are covered by an alignment, all exons between those two must also be covered for that alignment to be contiguous.
 
 The script works in multiple threads and will spawn one thread for each cromosome and strand, and will examine anotations and alignments that strand and chromosome, thus significantly speeding up the analysis. 
+
+__IMPORTANT:__ When making calculations, an error of 5 bases is premitted. Similarly, for an overlap to be valid it has to be at least 5 bases.
 
 ## Usage modes
 RNAseqEval.py script can be used in three differents modes, determined by the first argument. Each mode requires different parameters and allowes different options.
