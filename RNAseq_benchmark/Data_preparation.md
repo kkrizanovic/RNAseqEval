@@ -93,11 +93,41 @@ The script will then generate 3 new files:
     dmelanogaster_transcriptome_alternte_G3.fasta
     
 ### 8. Simulation using PBSIM
-Using PBSIM, simulate reads on each generated subset of transcriptome, using coverages determined in step 6 and error profiles determined in step 1.
+Trascriptomes generated in the presious step and coverages determined in step 6 were used for simulation. Simulation parameters were set acording to the error profiles callculated in the step 1.
 
+Simulation running example:
+
+    pbsim-1.0.3-Linux-amd64/Linux-amd64/bin/pbsim \
+    --data-type CLR --depth 5 \
+    --model_qc pbsim-1.0.3-Linux-amd64/data/model_qc_clr \
+    --length-mean 3080 \
+    --length-sd 2211 \
+    --length-min 50 \
+    --length-max 50000 \
+    --accuracy-mean 0.95 \
+    --accuracy-sd 0.11 \
+    --accuracy-min 0.7 \
+    --difference-ratio 47:38:15 \
+    ../s_cerevisiae_transcriptome_F_G1.fa
 
 ### 9. Combining simulation results into final datasets
+When running a simulation, PBSIM will generate 3 files for each reference used.
+- REF fie containing a single reference sequence
+- FASTQ file containing all reads simulated from the corresponding reference
+- MAF file describing how exactly were all reads from the corresponding reference generated
 
+Since we used PBSIM on a transcriptome which consists of a large number of sequences, PBSIM will generate a large number of files. Additionally, a simulation of a single dataset consists of several groups, for which the simulation results have to be accumulated together into a single file.
 
+For each partial simulation (group), generated FASTQ files are conactenated together into a single file. For example:
 
+    cat group1/*.fastq > s_cerevisiae_dataset_G1.fastq
 
+A prefox is then added to all headers for that partial simulation. This will later enable the evaluation script to determine to which group does a read belong and to find appropriate MAF file describing how the read was generated. For example, headers could be modified like this:
+
+    sed -i -e 's/ @S/ @SimG1_S/' s_cerevisiae_dataset_G1.fastq
+
+In the end, to create the final dataset, all FASTQ file belonging to separate groups are combined together. For example:
+
+    cat s_cerevisiae_dataset_G1.fastq s_cerevisiae_dataset_G2.fastq s_cerevisiae_dataset_G3.fastq > s_cerevisiae_dataset.fastq
+
+Final dataset (s_cerevisiae_dataset.fastq) can now be used for testing. It generation is somewhat complex making it more realistic then simply generating reads from all annotations with equal probability. The FASTQ headers have also been modified enable the evaluation script (Process_pbsim_data.py) to correctly evaluate the mapping results.
