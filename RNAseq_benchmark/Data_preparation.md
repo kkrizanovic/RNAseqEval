@@ -80,7 +80,24 @@ The gene expression histogram approximation data for human chromosome 19 is give
 ### 7. Extracting transcriptome subsets for simulation
 After approximating gene expression histogram with three points, we have determined the number of transcripts and coverage for each group. There were 3 greoups for _S. Cerevisiae_ because genes with alternative splicing were disregarded, and 6 groups for _D. Melanogaster_ and human chromosome 19.
 
-For each organism, transcriptome generated in the step 4 was divided into a 3 groups. This was done using a process_data.py script in this repository, with the option trans-split. The number of transcripts in each group is set within the script.
+For each organism, transcriptome generated in the step 4 was divided into a 3 groups. This was done using a process_data.py script in this repository, with the option trans-split. The number of transcripts in each group is set within the script. The script will generate 3 new files with the same name as the original transcriptome file with appended '\_G1', '\_G2' and '\_G3'.
+
+For _D. Melanogaster_ transcriptome for genes with alternate splicing, the script is invoked by:
+
+    prepare_data.py trans-split dmelanogaster_transcriptome_alternte.fasta
+
+The script will then generate 3 new files:
+
+    dmelanogaster_transcriptome_alternte_G1.fasta
+    dmelanogaster_transcriptome_alternte_G2.fasta
+    dmelanogaster_transcriptome_alternte_G3.fasta
+    
+### 8. Simulation using PBSIM
+Using PBSIM, simulate reads on each generated subset of transcriptome, using coverages determined in step 6 and error profiles determined in step 1.
+
+
+### 9. Combining simulation results into final datasets
+
 
 
 
