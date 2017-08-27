@@ -1,5 +1,5 @@
 # RNAseqEval
-A collection of tools for evaluating RNA seq mapping. The tools were used to benchmark some RNA mapping tools on real and synthetic third generation sequencing datasets. Detailed description of synthetic dataset preparation can be found at [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md).
+A collection of tools for evaluating RNA seq mapping. The tools were used to benchmark some RNA mapping tools on real and synthetic third generation sequencing datasets. Detailed description of synthetic dataset preparation can be found at [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md). Description of the evaluation process for real and simulated datasets can be found at [RNAseq_benchmark/RNAseq_benchmark.md](RNAseq_benchmark/RNAseq_benchmark.md).
 
 ## generate_transcriptome.py
 Run generate_transcriptome.py to generate a trancriptome from a reference and a set of annotations.
