@@ -49,7 +49,15 @@ To make the simulations more realistic, real gene expression datasets were used 
 
 <img src="/img/Gene expression histogram.png" width="600" height="300" align="middle">
 
-Gene expression histogram was approximated with three points (red squares in the figure).
+Gene expression histogram was approximated with three points (red squares in the figure), each point was described by a total number of genes and average coverage of those genes. Coverages were then scaled down to values more suitable to testing. These three points were later used for simulation.
+
+
+Group	Total no. genes	Coverage	Genes without alternative splicing	Genes with alternative splicing	Transcripts
+with alternative splicing	Coverage for AS transcripts
+1	5000	5	4500	500	1500	2
+2	2000	50	1750	250	750	15
+3	2000	100	1750	250	750	30
+
 
 For simplicity, we rounded the coverage and number of genes from each transcriptome subset. For example, the Table below shows the numbers used to generate dataset 2 (D. melanogaster). The annotation includes roughly 23,000 genes with a single isoform and 3,000 genes with alternative splicing. Rounding up the ratio, we have decided to simulate 1/10 genes with alternative splicing and 9/10 genes without. We considered that each gene undergoing alternative splicing gave rise to three different isoforms with equal expression.
 
