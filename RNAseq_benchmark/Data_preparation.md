@@ -35,14 +35,21 @@ Usage example for errorrates.py:
 Annotation and genome reference fles were additionally processed. Chromosome names, which were different for annotations and reference we unified, transforming them into form Chr[designation]. Only sequences representing actual chromosomes were kept for both reference and annotations. E.g. unfinished scaffolds and annotation with an unknown reference were removed. This was done using process_data.py script within this repository. 
 
 ### 3. Separating annotations into groups
-Annotations for each organism were separated into two groups. The first group contained annotations for genes with a single isoform and the second group contained annotations for genes with alternative splicing. This was done because those two groups were simulated diferently. Additionally, duplicate annotation definitions were removed keeping only the first definition and only up to three randomly chosen isoforms were kept for each gene with alternate splicing. This was done using the process_data.py script in this repository and by using mode split-alternate. The number of isoforms to keep can be adjusted by setting the value of the constant ALTERNATE_SPLICINGS_TO_KEEP in the script.
+Annotations for each organism were separated into two groups. The first group contained annotations for genes with a single isoform and the second group contained annotations for genes with alternative splicing. Whether two annotations belong to the same gene was determined based on their chromosome, strand and position overlap. This was done because those two groups were simulated diferently. Additionally, duplicate annotation definitions were removed keeping only the first definition and only up to three randomly chosen isoforms were kept for each gene with alternate splicing. Anntation groupig was done using the process_data.py script in this repository and by using mode split-alternate. The number of isoforms to keep can be adjusted by setting the value of the constant ALTERNATE_SPLICINGS_TO_KEEP in the script. Since _S. Cerevisiae_ has very few annotations with alternate splicing, they were disregarded and only annotations for genes with a single isoform were used for the testing.
 
 ### 4. Generating transcriptomes
-Transcriptomes are generated from processed annotations and genome reference using the script generate_transcriptome.py in this repository.
+Transcriptomes are generated from processed annotations and genome reference using the script generate_transcriptome.py in this repository. Since the annotations were separated into two groups, a transcriptom (or a set of transcripts) was generated for each group.
 
 Usage example:
 
-    generate_transcriptome.py dmelanogaster_annotations_P.gtf dmelanogaster_ref_P.fasta dmelanogaster_transcriptome.fasta
+    generate_transcriptome.py dmelanogaster_annotations_single_P.gtf dmelanogaster_ref_P.fasta dmelanogaster_transcriptome_single.fasta
+
+Since PBSIM requires that a reference for simulation is at least 100 base-pairs long, all transcripts shorter then 100bp were removed from transcriptomes. This was done using fastqfilter.py script from https://github.com/isovic/samscripts with option minlen.
+
+Usage example:
+
+    fastqfilter.py minlen 100 dmelanogaster_transcriptome_single.fasta dmelanogaster_transcriptome_single_P.fasta
+
 
 ### 5. Gene expression data
 To make the simulations more realistic, real gene expression datasets were used to model a set of transcripts for simulation (downloaded from http://bowtie-bio.sourceforge.net/recount/; core (human), nagalakshmi (yeast) and modencodefly (fruit fly) datasets were used). For each organism, a gene coverage histogram was drawn. Figure below shows such histogram for _D. Melanogaster_ exptrssion data.
@@ -70,7 +77,10 @@ The gene expression histogram approximation data for human chromosome 19 is give
 | 2 | 250 | 100 | 100 | 150 | 450 | 30 |
 | 3	| 70| 400 | 20 | 50 | 150 | 130 |
 
-### 7. 
+### 7. Extracting transcriptome subsets for simulation
+After approximating gene expression histogram with three points, we have determined the number of transcripts and coverage for each group. There were 3 greoups for _S. Cerevisiae_ because genes with alternative splicing were disregarded, and 6 groups for _D. Melanogaster_ and human chromosome 19.
+
+For each organism, transcriptome generated in the step 4 was divided into a 3 groups. This was done using a process_data.py script in this repository, with the option trans-split. The number of transcripts in each group is set within the script.
 
 
 
