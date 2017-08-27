@@ -24,4 +24,5 @@ Usage example:
 As with real datasets match rate is alculated using errorrates.py script from https://github.com/isovic/samscripts, by comparing alignments from the SAM file to the reference genome.
 
 ## Resource usage measurement
+Resource consumption is measured by a fork of cgmmetime tool avaiable at https://github.com/isovic/cgmemtime.git.
 
