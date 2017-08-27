@@ -47,7 +47,7 @@ Usage example:
 ### 5. Gene expression data
 To make the simulations more realistic, real gene expression datasets were used to model a set of transcripts for simulation (downloaded from http://bowtie-bio.sourceforge.net/recount/; core (human), nagalakshmi (yeast) and modencodefly (fruit fly) datasets were used). For each organism, a gene coverage histogram was drawn. Figure below shows such histogram for _D. Melanogaster_ exptrssion data.
 
-<img src="RNAseqEval/img/Gene expression histogram.png" width="600" height="300" align="middle">
+<img src="/img/Gene expression histogram.png" width="600" height="300" align="middle">
 
 Gene expression histogram was approximated with three points (red squares in the figure).
 
