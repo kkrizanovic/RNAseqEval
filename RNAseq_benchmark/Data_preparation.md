@@ -51,7 +51,7 @@ To make the simulations more realistic, real gene expression datasets were used 
 
 ### 6. Approximation of gene expression data
 
-Gene expression histogram was approximated with three points (red squares in the figure), each point was described by a total number of genes and average coverage of those genes. Coverages were then scaled down to values more suitable to testing. These three points were later used for simulation.
+Gene expression histogram was approximated with three points (red squares in the figure), each point was described by a total number of genes and average coverage of those genes. Coverages were then scaled down to values more suitable to testing. These three points were later used for simulation. Since we hadgene expression information, and annotation describe transcripts, the simulations we done separately for single isoform genes and for genes with alternative splicing.
 For simplicity, we rounded the coverage and number of genes from each point. For example, the Table below shows the numbers used to generate dataset 2 (D. melanogaster). The annotations includes roughly 23,000 genes with a single isoform and 3,000 genes with alternative splicing. Rounding up the ratio, we have decided to simulate 1/10 genes with alternative splicing and 9/10 genes without. We considered that each gene undergoing alternative splicing gave rise to three different isoforms with equal expression.
 
 | Group | Total no. genes | Coverage |Genes without alternative splicing | Genes with alternative splicing | Transcripts with alternative splicing | Coverage for AS transcripts |
@@ -59,6 +59,16 @@ For simplicity, we rounded the coverage and number of genes from each point. For
 | 1 | 5000 | 5 | 4500 | 500 | 1500 | 2 |
 | 2 | 2000 | 50 | 1750 | 250 | 750 | 15 |
 | 3	| 2000| 100 | 1750 | 250 | 750 |30 |
+
+_S. Cerevisiae_ has a negligable number of alternatly spliced genes and in that case they were ignored. The transcriptome was divided into three groups (approximation points in gene expression histogram) with 4000, 1000 and 1000 genes. The groups were simulated with coverage of 5, 40 and 100 respectively.
+
+The gene expression histogram approximation data for human chromosome 19 is given in the table below:
+
+| Group | Total no. genes | Coverage |Genes without alternative splicing | Genes with alternative splicing | Transcripts with alternative splicing | Coverage for AS transcripts |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1200 | 20 | 400 | 800 | 2400 | 6 |
+| 2 | 250 | 100 | 100 | 150 | 450 | 30 |
+| 3	| 70| 400 | 20 | 50 | 150 | 130 |
 
 ### 7. 
 
