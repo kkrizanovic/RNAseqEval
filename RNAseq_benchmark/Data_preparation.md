@@ -22,19 +22,31 @@ Simulated datasets were generated using the following workflow:
 9.	Combine generated reads into a single generated dataset.
 
 ### 1. Error profile of real datasets
-Real datasets were analyzed to determine error profiles. PacBio datasets were simulated using PacBio ROI isoseq error profile. Due to the lack of ONT MinION RNA reads, ONT MinION dataset was simulated using DNA error profile. Error profiles were determined by mapping the reads to the reference using GraphMap (https://github.com/isovic/graphmap), and by running errorrates.py script from https://github.com/isovic/samscripts. The script take SAM file with alignments and a reference as input, and calculated error rates by examining CIGAR strings for alignments and by comparing the corresponding bases in the read to the ones in the reference. Since PacBio error profile was determined from RNA reads, the reference was a transcriptome (_S.Cerevisiae, D. Melanogaster_ and _H. Sapiens_), while for ONT MinION reads, the reference was a genome (_D. Melanogaster_).
+Real datasets were analyzed to determine error profiles. For simulation of PacBio reads, PBSIM parameters (read length, error probability by type, etc) were set to match those of a dataset containing reads of insert (see Supplement table 1).
+For simulation of MinION ONT reads, PBSIM parameters (read length, error probability by type etc.) were set to match those for MinION reads from a R9 chemistry dataset obtained from the Loman lab website (http://lab.loman.net/2016/07/30/nanopore-r9-data-release). Only 2d reads statistics were used.
+
+Error profiles were determined by mapping the reads to the reference using GraphMap (https://github.com/isovic/graphmap), and by running errorrates.py script from https://github.com/isovic/samscripts. The script take SAM file with alignments and a reference as input, and calculated error rates by examining CIGAR strings for alignments and by comparing the corresponding bases in the read to the ones in the reference. Since PacBio error profile was determined from RNA reads, the reference was a transcriptome (_S.Cerevisiae, D. Melanogaster_ and _H. Sapiens_), while for ONT MinION reads, the reference was a genome (_D. Melanogaster_).
 
 Usage example for errorrates.py:
 
     errorrates.py base d_melanogaster_transcriptome.fa pacBio_ROI_dataset.sam
 
-### 2. Fintering annotations any unifying chromosome names
-
-
+### 2. Filtering annotations any unifying chromosome names
+Annotation and genome reference fles were additionally processed. Chromosome names, which were different for annotations and reference we unified, transforming them into form Chr[designation]. Only sequences representing actual chromosomes were kept for both reference and annotations. E.g. unfinished scaffolds and annotation with an unknown reference were removed. This was done using process_data.py script within this repository. 
 
 ### 3. Separating annotations into groups
+Annotations for each organism were separated into two groups. The first group contained annotations for genes with a single isoform and the second group contained annotations for genes with alternative splicing. This was done because those two groups were simulated diferently. Additionally, duplicate annotation definitions were removed keeping only the first definition and only up to three randomly chosen isoforms were kept for each gene with alternate splicing. This was done using the process_data.py script in this repository and by using mode split-alternate. The number of isoforms to keep can be adjusted by setting the value of the constant ALTERNATE_SPLICINGS_TO_KEEP in the script.
+
+### 4. Generating transcriptomes
+Transcriptomes are generated from processed annotations and genome reference using the script generate_transcriptome.py in this repository.
+
+Usage example:
+
+    generate_transcriptome.py dmelanogaster_annotations_P.gtf dmelanogaster_ref_P.fasta dmelanogaster_transcriptome.fasta
+
+### 5. Gene expression data
+
 
 For simplicity, we rounded the coverage and number of genes from each transcriptome subset. For example, the Table below shows the numbers used to generate dataset 2 (D. melanogaster). The annotation includes roughly 23,000 genes with a single isoform and 3,000 genes with alternative splicing. Rounding up the ratio, we have decided to simulate 1/10 genes with alternative splicing and 9/10 genes without. We considered that each gene undergoing alternative splicing gave rise to three different isoforms with equal expression.
 
-For simulation of PacBio reads, PBSIM parameters (read length, error probability by type, etc) were set to match those of dataset 5 containing reads of insert (see Supplement table 1).
-For simulation of MinION ONT reads, PBSIM parameters (read length, error probability by type etc.) were set to match those for MinION reads from a R9 chemistry dataset obtained from the Loman lab website (http://lab.loman.net/2016/07/30/nanopore-r9-data-release). Only 2d reads statistics were used.
+
