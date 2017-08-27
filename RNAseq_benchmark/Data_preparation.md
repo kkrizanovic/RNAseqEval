@@ -45,7 +45,9 @@ Usage example:
     generate_transcriptome.py dmelanogaster_annotations_P.gtf dmelanogaster_ref_P.fasta dmelanogaster_transcriptome.fasta
 
 ### 5. Gene expression data
-
+To make the simulations more realistic, real gene expression datasets were used to model a set of transcripts for simulation (downloaded from http://bowtie-bio.sourceforge.net/recount/; core (human), nagalakshmi (yeast) and modencodefly (fruit fly) datasets were used). For each organism, a gene coverage histogram was drawn. Figure below shows such histogram for _D. Melanogaster_ exptrssion data.
+<img src="img/gene_expression_histogram.png" width="316" height="300" align="middle">
+Gene expression histogram was approximated with three points (red squares in the figure).
 
 For simplicity, we rounded the coverage and number of genes from each transcriptome subset. For example, the Table below shows the numbers used to generate dataset 2 (D. melanogaster). The annotation includes roughly 23,000 genes with a single isoform and 3,000 genes with alternative splicing. Rounding up the ratio, we have decided to simulate 1/10 genes with alternative splicing and 9/10 genes without. We considered that each gene undergoing alternative splicing gave rise to three different isoforms with equal expression.
 
