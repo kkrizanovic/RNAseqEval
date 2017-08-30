@@ -12,6 +12,7 @@ import utility_sam
 import Annotation_formats
 import RNAseqEval
 from report import EvalReport, ReportType
+from RNAseq_benchmark import benchmark_params
 
 from fastqparser import read_fastq
 
@@ -20,37 +21,28 @@ from fastqparser import read_fastq
 P_CHECK_STRAND = False
 
 
-# Predefined dictionaries for analyzing different datasets
-simFolderDict_d1 = {'SimG1' : 'group1'
-                  , 'SimG2' : 'group2'
-                  , 'SimG3' : 'group3'}
+# OLD: Predefined dictionaries for analyzing different datasets
+# simFolderDict_d1 = {'SimG1' : 'group1'
+#                   , 'SimG2' : 'group2'
+#                   , 'SimG3' : 'group3'}
+#
+# simFolderDict_all = {'SimG1' : 'group1'
+#                    , 'SimG2' : 'group2'
+#                    , 'SimG3' : 'group3'
+#                    , 'SimG1AS' : 'group1_AS'
+#                    , 'SimG1SS' : 'group1_SS'
+#                    , 'SimG2AS' : 'group2_AS'
+#                    , 'SimG2SS' : 'group2_SS'
+#                    , 'SimG3AS' : 'group3_AS'
+#                    , 'SimG3SS' : 'group3_SS'}
 
-simFolderDict_all = {'SimG1' : 'group1'
-                  , 'SimG2' : 'group2'
-                  , 'SimG3' : 'group3'
-                  , 'SimG1AS' : 'group1_AS'
-                  , 'SimG1SS' : 'group1_SS'
-                  , 'SimG2AS' : 'group2_AS'
-                  , 'SimG2SS' : 'group2_SS'
-                  , 'SimG3AS' : 'group3_AS'
-                  , 'SimG3SS' : 'group3_SS'}
-
-simFolderDict_all = {'SimG1' : 'group1'
-                   , 'SimG2' : 'group2'
-                   , 'SimG3' : 'group3'
-                   , 'SimG1AS' : 'group1_AS'
-                   , 'SimG1SS' : 'group1_SS'
-                   , 'SimG2AS' : 'group2_AS'
-                   , 'SimG2SS' : 'group2_SS'
-                   , 'SimG3AS' : 'group3_AS'
-                   , 'SimG3SS' : 'group3_SS'}
 
 # A dictionary connecting fasta/fastq header prefix with the folder with pbsim generated data
 # Containing information for reads with each prefix
 # This is used because data is simulated using several pbsim runs to get different
 # coverages for different sets of references (in this case transcripts)
 # NOTE: this should be changed for different simulations
-simFolderDict = simFolderDict_all
+simFolderDict = benchmark_params.simFolderDict
 
 
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
@@ -139,11 +131,15 @@ def processData(datafolder, resultfile, annotationfile):
 
     s_num_potential_bad_strand = 0
 
+    # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
+    # Setting allowed inaccuracy
+    allowed_inacc = 5
+
     # All samlines in a list should have the same query name
     for samline_list in all_sam_lines:
         qname = samline_list[0].qname
-        isSplitAlignment = False
 
+        isSplitAlignment = False
         if len(samline_list) > 1:
             s_num_split_alignment += 1
             isSplitAlignment = True
@@ -225,7 +221,7 @@ def processData(datafolder, resultfile, annotationfile):
         # Reading reference file
         [headers, seqs, quals] = read_fastq(simRefFilePath)
         simGeneName = headers[0]
-        annotation = annotation_dict[simGeneName]
+        annotation = annotation_dict[simGeneName]       # Getting the correct annotation
 
         if len(samline_list) > len(annotation.items):
             # sys.stderr.write('\nWARNING: A number of partial alignments exceeds the number of exons for query %s! (%d / %d)' % (qname, len(samline_list), len(annotation.items)))
@@ -315,28 +311,34 @@ def processData(datafolder, resultfile, annotationfile):
             # pdb.set_trace()
 
             good_alignment = True
+            k = 0
             for samline in samline_list:
-                sl_startpos = samline.pos - 1   # SAM positions are 1-based
-                # NOTE: Due to currenly incorrect handling of MAF file
-                #       Have to make this work better
+                # sl_startpos = samline.pos - 1   # SAM positions are 1-based
+                sl_startpos = samline.pos
                 reflength = samline.CalcReferenceLengthFromCigar()
                 sl_endpos = sl_startpos + reflength
 
-                good_alignment = True
+                # Comparing a samline to the corresponding expected partial alignment
+                if k < len(expected_partial_alignments):
+                    expected_alignement = expected_partial_alignments[k]
+                    maf_startpos = expected_alignement[0]
+                    maf_endpos = expected_alignement[1]
+                    if abs(sl_startpos - maf_startpos) > allowed_inacc or abs(sl_endpos - maf_endpos) > allowed_inacc:
+                        good_alignment = False
+                else:
+                    good_alignment = False
+                k += 1
+
+                # Comparing a samline to all expected partial alignments
                 for i in xrange(len(expected_partial_alignments)):
                     expected_alignement = expected_partial_alignments[i]
                     maf_startpos = expected_alignement[0]
                     maf_endpos = expected_alignement[1]
-                    # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
-                    allowed_inacc = 5
 
                     if interval_equals((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
                         parteqmap[i+1] += 1
                     if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
                         parthitmap[i+1] += 1
-
-                    if abs(sl_startpos - maf_startpos) > allowed_inacc or abs(sl_endpos - maf_endpos) > allowed_inacc:
-                        good_alignment = False
 
             if good_alignment:
                 s_maf_good_alignments += 1
@@ -448,39 +450,67 @@ def processData(datafolder, resultfile, annotationfile):
         else:
             s_whole_alignment_misses += 1
 
-    # Printing out results
+
+    # Printing out results : NEW
+    # Variables names matching RNA benchmark paper
     sys.stdout.write('\n\nAnalysis results:')
     sys.stdout.write('\nOriginal Samlines: %d' % report.num_alignments)
-    sys.stdout.write('\nUsable whole alignments: %d' % len(all_sam_lines))
-    sys.stdout.write('\nSplit alignments: %d' % s_num_split_alignment)
+    sys.stdout.write('\nUsable whole alignments (with valid CIGAR string): %d' % len(all_sam_lines))
     sys.stdout.write('\nAnnotations: %d' % len(annotation_dict))
     sys.stdout.write('\nMultiexon genes: %d' % s_num_multiexon_genes)
-    sys.stdout.write('\nPartial alignment hits: %d' % s_partial_alignment_hits)
-    sys.stdout.write('\nPartial alignment misses: %d' % s_partial_alignment_misses)
-    sys.stdout.write('\nWhole alignment hits: %d' % s_whole_alignment_hits)
-    sys.stdout.write('\nWhole alignment misses: %d' % s_whole_alignment_misses)
-    sys.stdout.write('\nNumber of oversplit alignments: %d' % s_num_oversplit_alignment)
+
     sys.stdout.write('\nNumber of exon start hits: %d' % s_num_start_hits)
     sys.stdout.write('\nNumber of exon end hits: %d' % s_num_end_hits)
     sys.stdout.write('\nNumber of exon start and end hits: %d' % s_num_start_end_hits)
     sys.stdout.write('\nNumber of good whole alignments: %d' % s_num_good_alignments)
-    sys.stdout.write('\nNumber of alignments mapped to an incorrect chromosome: %d' % s_num_badchrom_alignments)
-    sys.stdout.write('\nPartial alignments on strand (FW / RV): (%d / %d)' % (s_num_fw_strand, s_num_rv_strand))
-    sys.stdout.write('\nPotential bad strand alignments: %d' % s_num_potential_bad_strand)
-    sys.stdout.write('\nMAF: Suspicious alignments: %d' % s_maf_suspicious_alignments)
+
     sys.stdout.write('\nMAF: Hit both ends: %d' % s_maf_good_alignments)
-    sys.stdout.write('\nMAF: Didn\'t hit both ends: %d' % s_maf_bad_alignments)
     sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part: %d' % s_maf_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part: %d' % s_maf_eq_one_part)
-    sys.stdout.write('\nMAF: Multihit parts (fragmented) alignments: %d' % s_maf_multihit_parts)
+
     sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
-    sys.stdout.write('\nMAF: Hit both ends, SPLIT alignments: %d' % s_maf_good_split_alignments)
-    sys.stdout.write('\nMAF: Didn\'t hit both ends, SPLIT alignments: %d' % s_maf_bad_split_alignments)
-    sys.stdout.write('\nMAF: Hit all parts on split read: %d' % s_maf_split_hit_all_parts)
-    sys.stdout.write('\nMAF: Hit at least one part on split read: %d' % s_maf_split_hit_one_part)
-    sys.stdout.write('\nMAF: Equals at least one part on split read: %d' % s_maf_split_eq_one_part)
+    sys.stdout.write('\nMAF: Hit both ends, SPLIT read: %d' % s_maf_good_split_alignments)
+    sys.stdout.write('\nMAF: Hit all parts, SPLIT read: %d' % s_maf_split_hit_all_parts)
+    sys.stdout.write('\nMAF: Hit at least one part, SPLIT read: %d' % s_maf_split_hit_one_part)
+    sys.stdout.write('\nMAF: Equals at least one part, SPLIT read: %d' % s_maf_split_eq_one_part)
+
     sys.stdout.write('\nDone!\n')
+
+
+    # # Printing out results
+    # sys.stdout.write('\n\nAnalysis results:')
+    # sys.stdout.write('\nOriginal Samlines: %d' % report.num_alignments)
+    # sys.stdout.write('\nUsable whole alignments: %d' % len(all_sam_lines))
+    # sys.stdout.write('\nSplit alignments: %d' % s_num_split_alignment)
+    # sys.stdout.write('\nAnnotations: %d' % len(annotation_dict))
+    # sys.stdout.write('\nMultiexon genes: %d' % s_num_multiexon_genes)
+    # sys.stdout.write('\nPartial alignment hits: %d' % s_partial_alignment_hits)
+    # sys.stdout.write('\nPartial alignment misses: %d' % s_partial_alignment_misses)
+    # sys.stdout.write('\nWhole alignment hits: %d' % s_whole_alignment_hits)
+    # sys.stdout.write('\nWhole alignment misses: %d' % s_whole_alignment_misses)
+    # sys.stdout.write('\nNumber of oversplit alignments: %d' % s_num_oversplit_alignment)
+    # sys.stdout.write('\nNumber of exon start hits: %d' % s_num_start_hits)
+    # sys.stdout.write('\nNumber of exon end hits: %d' % s_num_end_hits)
+    # sys.stdout.write('\nNumber of exon start and end hits: %d' % s_num_start_end_hits)
+    # sys.stdout.write('\nNumber of good whole alignments: %d' % s_num_good_alignments)
+    # sys.stdout.write('\nNumber of alignments mapped to an incorrect chromosome: %d' % s_num_badchrom_alignments)
+    # sys.stdout.write('\nPartial alignments on strand (FW / RV): (%d / %d)' % (s_num_fw_strand, s_num_rv_strand))
+    # sys.stdout.write('\nPotential bad strand alignments: %d' % s_num_potential_bad_strand)
+    # sys.stdout.write('\nMAF: Suspicious alignments: %d' % s_maf_suspicious_alignments)
+    # sys.stdout.write('\nMAF: Hit both ends: %d' % s_maf_good_alignments)
+    # sys.stdout.write('\nMAF: Didn\'t hit both ends: %d' % s_maf_bad_alignments)
+    # sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
+    # sys.stdout.write('\nMAF: Hit at least one part: %d' % s_maf_hit_one_part)
+    # sys.stdout.write('\nMAF: Equals at least one part: %d' % s_maf_eq_one_part)
+    # sys.stdout.write('\nMAF: Multihit parts (fragmented) alignments: %d' % s_maf_multihit_parts)
+    # sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
+    # sys.stdout.write('\nMAF: Hit both ends, SPLIT alignments: %d' % s_maf_good_split_alignments)
+    # sys.stdout.write('\nMAF: Didn\'t hit both ends, SPLIT alignments: %d' % s_maf_bad_split_alignments)
+    # sys.stdout.write('\nMAF: Hit all parts on split read: %d' % s_maf_split_hit_all_parts)
+    # sys.stdout.write('\nMAF: Hit at least one part on split read: %d' % s_maf_split_hit_one_part)
+    # sys.stdout.write('\nMAF: Equals at least one part on split read: %d' % s_maf_split_eq_one_part)
+    # sys.stdout.write('\nDone!\n')
 
 
 def verbose_usage_and_exit():
