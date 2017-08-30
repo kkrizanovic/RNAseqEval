@@ -1,0 +1,15 @@
+#/bin/bash
+
+/home/kkrizanovic/build/pbsim-1.0.3-Linux-amd64/Linux-amd64/bin/pbsim \
+--data-type CLR --depth 5 \
+--model_qc /home/kkrizanovic/build/pbsim-1.0.3-Linux-amd64/data/model_qc_clr \
+--length-mean 3080 \
+--length-sd 2211 \
+--length-min 50 \
+--length-max 50000 \
+--accuracy-mean 0.95 \
+--accuracy-sd 0.11 \
+--accuracy-min 0.7 \
+--difference-ratio 47:38:15 \
+../dmelanogaster_chr4_trans_F.fa
+
