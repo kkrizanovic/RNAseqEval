@@ -31,3 +31,6 @@ How to run:
     Process_pbsim_data.py process simulation_root_folder mappings.sam annotations.gtf
 
 Detailed description of options, output and required simulation data organization can be found at [doc/Process_pbsim_data.md](doc/Process_pbsim_data.md).
+
+## Example dataset
+Folder example_dataset contains an example dataset, simulated by applying PBSIM o a transcriptome. Example dataset was generated usign reference and annotations for_ Drosophilla Melanogaster_ chromosome 4. The folder contains everything necessary to test out our evaluation tools. More on example dataset can be fouund at [example_dataset/example.md](example_dataset/example.md).
