@@ -5,3 +5,7 @@ The folder also contains all files needed to test the dataset and the tools.
 
 Contents of the folder:
 - example.fastq - small test dataset, 
+- example.sam   - mapping of the example dataset to the reference genome using GraphMap (https://github.com/isovic/graphmap) and it option to map RNA reads with the help of annotations.
+- dmelanogaster_chr_genome.fa  - genomic sequence for _D. Melanogaster_ chromosome 4, this represents a reference genome for our example dataset
+- dmelanogaster_chr.gft - gene annotations for _D. Melanogaster_ chromosome 4
+- dmelanogaster_chr_trans_F.fa - transcriptome for for _D. Melanogaster_ chromosome 4, this is generated from geneomic sequence and annotations using [/generate_transcriptome.py](/generate_transcriptome.py). DEsignation '\_F' means that the transcriptome has been filtered, removing sequences shorter than 100 base-pairs, as required by PBSIM.
