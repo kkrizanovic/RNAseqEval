@@ -755,8 +755,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         for samline in samline_list:
             chromname = getChromName(samline.rname)
             if chromname not in chromname2seq:
-                import pdb
-                pdb.set_trace()
+                # import pdb
+                # pdb.set_trace()
                 raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
             chromidx = chromname2seq[chromname]
 
@@ -789,9 +789,9 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         total_read_length += readlength
         total_bases_aligned += basesaligned
         if basesaligned > readlength:
-            import pdb
-            pdb.set_trace()
-            # raise Exception('\nERROR counting aligned and total bases!')
+            # import pdb
+            # pdb.set_trace()
+            raise Exception('\nERROR counting aligned and total bases!')
             # TODO: See what happens here
             pass
 
@@ -1486,9 +1486,9 @@ def eval_maplength(samfile, paramdict):
                     sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
 
         if basesaligned > readlength:
-            import pdb
-            pdb.set_trace()
-            # raise Exception('\nERROR counting aligned and total bases!')
+            # import pdb
+            # pdb.set_trace()
+            raise Exception('\nERROR counting aligned and total bases!')
             # TODO: See what happens here
             pass
 

@@ -158,9 +158,9 @@ def processData(datafolder, resultfile, annotationfile):
 
         simFolderKey = qname[:pos]
         if simFolderKey not in simFolderDict:
-            import pdb
-            pdb.set_trace()
-            # raise Exception('Bad simulation folder short name (%s)!' % simFolderKey)
+            # import pdb
+            # pdb.set_trace()
+            raise Exception('Bad simulation folder short name (%s)!' % simFolderKey)
         simFolder = simFolderDict[simFolderKey]
         simQName = qname[pos+1:]
 
@@ -206,16 +206,16 @@ def processData(datafolder, resultfile, annotationfile):
         simMafFilePath = os.path.join(simFilePath, simMafFileName)
 
         if not os.path.exists(simRefFilePath):
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise Exception('Reference file for simulated read %s does not exist!' % qname)
         if not os.path.exists(simSeqFilePath):
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise Exception('Sequence file for simulated read %s does not exist!' % qname)
         if not os.path.exists(simMafFilePath):
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise Exception('Sequence alignment (MAF) for simulated read %s does not exist!' % qname)
 
         # Reading reference file
@@ -246,8 +246,8 @@ def processData(datafolder, resultfile, annotationfile):
                         break
 
         if maf_qname != simQName:
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise Exception('ERROR: could not find query %s in maf file %s' % (qname, simMafFileName))
 
         # Calculating expected partial alignmetns from MAF and annotations
@@ -268,9 +268,9 @@ def processData(datafolder, resultfile, annotationfile):
             try:
                 start = annotation.items[i].start + maf_startpos
                 end = annotation.items[i].end
-            except Exception:
-                import pdb
-                pdb.set_trace()
+            # except Exception:
+            #     import pdb
+            #     pdb.set_trace()
             #if not start < end:
             #    import pdb
             #    pdb.set_trace()
