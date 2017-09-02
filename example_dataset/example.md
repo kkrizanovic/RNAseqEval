@@ -19,7 +19,7 @@ Matchrate for SAM file contining mappings can be determined using errorrates.py 
 
 __Results:__
 
-                       	mean	std	    median	min	    max
+                       	mean    std     median  min     max
     Error rate:     	9.16%	5.77%	8.51%	0.57%	71.89%
     Insertion rate: 	3.90%	2.80%	3.46%	0.00%	13.32%
     Deletion rate:  	0.97%	1.46%	0.81%	0.00%	60.52%
