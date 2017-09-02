@@ -12,7 +12,7 @@ Synthetic datasets were created from the following organisms:
 -	Homo Sapiens GRCh38.p7 (human)
 Reference genomes for all organisms were downloaded from http://www.ncbi.nlm.nih.gov.
 
-PBSIM is intended to be used as a genomic reads simulator, taking as input a reference sequence and a set of simulation parameters (e.g., coverage, read length, error profile). To generate RNA-seq reads, PBSIM was applied to a set of transcripts generated from a particular genome using the gene annotations downloaded from https://genome.ucsc.edu/cgi-bin/hgTables. To make the datasets as realistic as possible, real datasets were analyzed and used to determine simulation parameters. Real gene expression datasets were used to select a set of transcripts for simulation (downloaded from http://bowtie-bio.sourceforge.net/recount/; core (human), nagalakshmi (yeast) and modencodefly (fruit fly) datasets were used).
+PBSIM is intended to be used as a genomic reads simulator, taking as input a reference sequence and a set of simulation parameters (e.g., coverage, read length, error profile). To generate RNA-seq reads, PBSIM was applied to a set of transcripts generated from a particular genome using gene annotations downloaded from https://genome.ucsc.edu/cgi-bin/hgTables. To make the datasets as realistic as possible, real datasets were analyzed and used to determine simulation parameters. Real gene expression datasets were used to select a set of transcripts for simulation (downloaded from http://bowtie-bio.sourceforge.net/recount/; core (human), nagalakshmi (yeast) and modencodefly (fruit fly) datasets were used).
 
 ## Simulated data preparation
 Simulated datasets were generated using the following workflow:
