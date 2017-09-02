@@ -67,7 +67,7 @@ For simplicity, we rounded the coverage and number of genes from each point. For
 | 2 | 2000 | 50 | 1750 | 250 | 750 | 15 |
 | 3	| 2000| 100 | 1750 | 250 | 750 |30 |
 
-_S. Cerevisiae_ has a negligable number of alternatly spliced genes and in that case they were ignored. The transcriptome was divided into three groups (approximation points in gene expression histogram) with 4000, 1000 and 1000 genes. The groups were simulated with coverage of 5, 40 and 100 respectively.
+_S. Cerevisiae_ has a negligible number of alternatly spliced genes and in that case they were ignored. The transcriptome was divided into three groups (approximation points in gene expression histogram) with 4000, 1000 and 1000 genes. The groups were simulated with coverage of 5, 40 and 100 respectively.
 
 The gene expression histogram approximation data for human chromosome 19 is given in the table below:
 
