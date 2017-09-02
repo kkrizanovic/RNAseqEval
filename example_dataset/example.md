@@ -61,7 +61,7 @@ We can see that out of total 2955 reads, 2852 were mapped. Out of those, only 32
 ### Running RNAseqEval.py
 Evaluation of real data is performed using RNAseqEval.py script. It requires gene annotations for comparison to mappings.
 
-    python /home/kkrizanovic/src/RNAseqEval/RNAseqEval.py eval-mapping dmelanogaster_chr4_genome.fa sample.sam -a dmelanogaster_chr4.gtf
+    python /home/kkrizanovic/src/RNAseqEval/RNAseqEval.py eval-mapping dmelanogaster_chr4_genome.fa sample.sam -a dmelanogaster_chr4.gtf --expression
 
 __Output:__
 
@@ -99,3 +99,8 @@ __Output:__
     Number of expressed Transcripts = 237
     Expressed transcripts: ...
 
+The above contains several sections. It contains some statistical information on each input it receives, genome reference, gene annotations  and SAM file with alignments. Those sections are straightforward. Last two sections contain statistics calculated by comparing the inputs. The first of them asseses the quality of mapping, while the second one contains gene expression information.
+
+Lookng at __Mapping quality information__ part, we can see that all 2852 alignments that were mapped manage to hit a transcript (__Alignments on transcript__) and an exon (__Alignments on exons__). This is a significantly better result than Process_pbsim_data.py script calculated. However, since RNAseqEval.py script doesn't consider actual read origins, we can not know which alignment is accurate, and which is aligned to an incorrect position while still overlapping a exon.
+
+The metric called __Contiguous alignments__ attempts to determine the correct alignments by comparing them to gene annotations. Those alignments that overlap a contiguous series of exons (not skipping any) belonging to a single transcript, and that manage to align correctly (within 5 base-pairs) to all inner exon boundaries (start and ends) are oconsidered contiguous. In the upper report, 60.92% (or 1738) of the mapped alignments are contiguous. We can say with very high probability that those alignments are correct, but since read origins are not known, we still can not be certain. Some of the other alignments are also aligned to a correct approximate position, but they do not match the annotations well enough.
