@@ -24,7 +24,7 @@ __Results:__
     Insertion rate: 	3.90%	2.80%	3.46%	0.00%	13.32%
     Deletion rate:  	0.97%	1.46%	0.81%	0.00%	60.52%
     Mismatch rate:  	4.29%	2.67%	4.12%	0.00%	13.23%
-    Match rate:     	__91.80%__	5.38%	92.41%	75.06%	100.00%
+    Match rate:     	91.80%	5.38%	92.41%	75.06%	100.00%
     Read length:    	2310.96	1518.89	2051.50	97.00	18737.00
     Difference ratio:	48:42:10 (mismatch:insertion:deletion)
 
