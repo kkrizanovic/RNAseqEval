@@ -265,15 +265,17 @@ def processData(datafolder, resultfile, annotationfile):
         # Calculating expected partial alignments by filling up exons using maf_length
         expected_partial_alignments = []
         while maf_length > 0:
-            try:
-                start = annotation.items[i].start + maf_startpos
-                end = annotation.items[i].end
+            # try:
+            #     start = annotation.items[i].start + maf_startpos
+            #     end = annotation.items[i].end
             # except Exception:
             #     import pdb
             #     pdb.set_trace()
             #if not start < end:
             #    import pdb
             #    pdb.set_trace()
+            start = annotation.items[i].start + maf_startpos
+            end = annotation.items[i].end
             assert start <= end
             length = end-start+1
             if length <= maf_length:
@@ -345,6 +347,8 @@ def processData(datafolder, resultfile, annotationfile):
                 if isSplitRead:
                     s_maf_good_split_alignments += 1
             else:
+                # import pdb
+                # pdb.set_trace()
                 s_maf_bad_alignments += 1
                 if isSplitRead:
                     s_maf_bad_split_alignments += 1
