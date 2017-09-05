@@ -99,13 +99,6 @@ Annotation statistics:
     - Gene size (Min / Max / Avg)
     - Exon size (Min / Max / Avg)
 
-Annotations that are on the same chromosome and strand and that overlap each other are grouped into annotation groups. Each group should represent a gene, while each annotation in a group should represent one possible splicing for that gene.
-
-    - Number of annotation groups (genes)
-    - Number of genes with alternate splicing
-    - Maximum / minimum number of alternate spliced alignments for a gene
-    - Maximum / minimum number of exons in spliced alignments
-
 Mapping quality information obtained by comparing alignements in a SAM file to given annotations. Only in eval-mapping mode if annotations are provided.
 
      - Total number and percentage of bases aligned for all reads
