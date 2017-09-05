@@ -1,6 +1,21 @@
 # RNAseqEval
 A collection of tools for evaluating RNA seq mapping. The tools were used to benchmark some RNA mapping tools on real and synthetic third generation sequencing datasets. Detailed description of synthetic dataset preparation can be found at [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md). Description of the evaluation process for real and simulated datasets can be found at [RNAseq_benchmark/RNAseq_benchmark.md](RNAseq_benchmark/RNAseq_benchmark.md).
 
+## Installation
+Since the RNAseqEval repository contains python scripts, it does not require an installation. Only requirement is to clone RNAseqEval repository together with the samscripts submodule:
+
+    git clone --recursive https://github.com/kkrizanovic/RNAseqEval.git
+
+The other way is to clone the main repository first and then update the submodule:
+
+    git clone https://github.com/kkrizanovic/RNAseqEval.git
+    cd RNAseqEval
+    git submodule update --init --recursive
+
+## Prerequisites
+The repository contains Python scripts only and requires a Python 2 interpreter. We have tested it on Ubuntu server 14.04 and 16.04 with Python 2.7.12 However, we believe that it should also work with older versions of Paython and on other operating systems.
+
+
 ## generate_transcriptome.py
 Run generate_transcriptome.py to generate a trancriptome from a reference and a set of annotations.
 
@@ -34,3 +49,6 @@ Detailed description of options, output and required simulation data organizatio
 
 ## Example dataset
 Folder example_dataset contains an example dataset, simulated by applying PBSIM o a transcriptome. Example dataset was generated usign reference and annotations for_ Drosophilla Melanogaster_ chromosome 4. The folder contains everything necessary to test out our evaluation tools. More on example dataset can be fouund at [example_dataset/example.md](example_dataset/example.md).
+
+## Acknowledgement  
+This work has been supported in part by Croatian Science Fundation under the project UIP-11-2013-7353. 
