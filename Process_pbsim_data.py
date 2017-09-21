@@ -468,13 +468,13 @@ def processData(datafolder, resultfile, annotationfile):
     sys.stdout.write('\nNumber of exon start and end hits: %d' % s_num_start_end_hits)
     sys.stdout.write('\nNumber of good whole alignments: %d' % s_num_good_alignments)
 
-    sys.stdout.write('\nMAF: Hit both ends: %d' % s_maf_good_alignments)
+    sys.stdout.write('\nMAF: Correct alignment: %d' % s_maf_good_alignments)
     sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part: %d' % s_maf_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part: %d' % s_maf_eq_one_part)
 
     sys.stdout.write('\nMAF: Number of split reads: %d' % s_maf_split_reads)
-    sys.stdout.write('\nMAF: Hit both ends, SPLIT read: %d' % s_maf_good_split_alignments)
+    sys.stdout.write('\nMAF: Correct alignment, SPLIT read: %d' % s_maf_good_split_alignments)
     sys.stdout.write('\nMAF: Hit all parts, SPLIT read: %d' % s_maf_split_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part, SPLIT read: %d' % s_maf_split_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part, SPLIT read: %d' % s_maf_split_eq_one_part)

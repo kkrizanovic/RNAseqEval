@@ -24,7 +24,7 @@ import time
 
 DISTANCE_THRESHOLD = 10000
 MIN_OVERLAP_BASES = 5
-NUM_PROCESS = 6
+NUM_PROCESS = 12
 
 
 # TODO: Osim broja readova koji pokrivaju pojedini gen, izracunati i coverage
@@ -200,15 +200,34 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
 
         sam_hash = new_sam_hash
 
+    # NOTE: This is a quick and dirty solution
+    # Setting this to true so that large deletions are turned into Ns
+    # BBMap marks intron RNA alignment gaps with deletions!
+    BBMapFormat = True
+
     # Reorganizing SAM lines, removing unmapped queries, leaving only the first alignment and
     # other alignments that possibly costitute a split alignment together with the first one
     samlines = []
     cnt = 0
+    pattern = '(\d+)(.)'
     # for samline_list in sam_hash.itervalues():
     for (samline_key, samline_list) in sam_hash.iteritems():
         cnt += 1
         if samline_list[0].cigar <> '*' and samline_list[0].cigar <> '':            # if the first alignment doesn't have a regular cigar string, skip
-            pattern = '(\d+)(.)'
+
+            if BBMapFormat:
+                # All deletes that are 10 or more bases are replaced with Ns of the same length
+                operations = re.findall(pattern, samline_list[0].cigar)
+                newcigar = ''
+                for op in operations:
+                    op1 = op[1]
+                    op0 = op[0]
+                    if op[1] == 'D' and int(op[0]) >= 10:
+                        op1 = 'N'
+                    newcigar += op0 + op1
+                samline_list[0].cigar = newcigar
+
+
             operations = re.findall(pattern, samline_list[0].cigar)
             split = False
 
@@ -279,6 +298,17 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 temp_samline_list = [samline_list[0]]        # add the first alignment to the temp list
                 multi_alignment = False
                 for samline in samline_list[1:]:            # look through other alignments and see if they could form a split alignment with the current temp_samline_list
+                    if BBMapFormat:
+                        # All deletes that are 10 or more bases are replaced with Ns of the same length
+                        operations = re.findall(pattern, samline)
+                        newcigar = ''
+                        for op in operations:
+                            op0 = op[0]
+                            op1 = op[1]
+                            if op[1] == 'D' and int(op[0]) >= 10:
+                                op1 = 'N'
+                            newcigar += op0 + op1
+                        samline.cigar = newcigar
                     if not join_split_alignment(temp_samline_list, samline):
                         multi_alignment = True
 

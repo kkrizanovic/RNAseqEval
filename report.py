@@ -219,15 +219,15 @@ class EvalReport:
                    self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
                    self.min_exon_length, self.max_exon_length, self.avg_exon_length)
 
-            report += """\n
-            Grouped annotation (alternate splicing) statistics:
-            Number of annotation groups (genes) = %d
-            Number of genes with alternate splicing = %d
-            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
-            Maximum / minimum number of exons in spliced alignments = %d / %d
-            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
-                   self.max_spliced_alignments, self.min_spliced_alignments, \
-                   self.max_spliced_exons, self.min_spliced_exons)
+            # report += """\n
+            # Grouped annotation (alternate splicing) statistics:
+            # Number of annotation groups (genes) = %d
+            # Number of genes with alternate splicing = %d
+            # Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+            # Maximum / minimum number of exons in spliced alignments = %d / %d
+            # """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+            #        self.max_spliced_alignments, self.min_spliced_alignments, \
+            #        self.max_spliced_exons, self.min_spliced_exons)
 
             report += """\n
             Mapping quality information:
@@ -300,13 +300,13 @@ class EvalReport:
                    self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
                    self.min_exon_length, self.max_exon_length, self.avg_exon_length)
 
-            report += """\n
-            Grouped annotation (alternate splicing) statistics:
-            Number of annotation groups (genes) = %d
-            Number of genes with alternate splicing = %d
-            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
-            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
-                   self.max_spliced_alignments, self.min_spliced_alignments)
+            # report += """\n
+            # Grouped annotation (alternate splicing) statistics:
+            # Number of annotation groups (genes) = %d
+            # Number of genes with alternate splicing = %d
+            # Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+            # """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+            #        self.max_spliced_alignments, self.min_spliced_alignments)
 
             if self.output_alternate_splicing:
                 report += """\n
@@ -329,187 +329,187 @@ class EvalReport:
 
     # DEPRECATED
     # Old toString function, not used any more!
-    def toString_OLD(self):
-        if self.rtype == ReportType.FASTA_REPORT:
-            report = """\n
-            Reference format: FASTA
-            General information:
-            Reference length = %d bp
-            Number of chromosomes = %d
-            Chromosomes:\n%s
-            Number of alignments (total / unique / non / real) = %d / %d / %d / %d
-            Number of alignments (multi / split /possibly split) = %d / %d / %d
-            Alignments with / without CIGAR string = %d / %d
-            Mapping quality without zeroes (avg / min / max) = %.2f / %d / %d
-            Alignments with mapping quality (>0 / =0) = %d / %d
-            Number of matches / mismatches / inserts / deletes = %d / %d / %d / %d
-            Percentage of matches / mismatches / inserts / deletes = %.2f / %.2f / %.2f / %.2f
-            """ % (self.reflength, len(self.chromlengths), self.chromosomes(), \
-                   self.num_alignments, self.num_unique_alignments, self.num_non_alignments, self.num_real_alignments, \
-                   self.num_multi_alignments, self.num_split_alignments, self.num_possibly_split_alignements, \
-                   self.num_alignments - self.num_non_alignments, self.num_non_alignments, \
-                   self.avg_mapping_quality, self.min_mapping_quality, self.max_mapping_quality, self.num_good_quality, self.num_zero_quality, \
-                   self.num_match, self.num_mismatch, self.num_insert, self.num_delete, \
-                   self.match_percentage, self.mismatch_percentage, self.insert_percentage, self.delete_percentage)
-            return report + '\n'
-        elif self.rtype == ReportType.MAPPING_REPORT:
-            report = """\n
-            Command Line: %s
-            Reference format: ANNOTATION
-            General information:
-            Reference length = %d bp
-            Number of chromosomes = %d
-            Chromosomes:
-            %s
-            Number of alignments in SAM file (total / unique) = %d / %d
-            Number of alignments (multi / split /possibly split) = %d / %d / %d
-            Number of alignments (real / non / real split) = %d / %d / %d
-            Alignments with / without CIGAR string = %d / %d
-            Mapping quality without zeroes (avg / min / max) = %.2f / %d / %d
-            Alignments with mapping quality (>0 / =0) = %d / %d
-            Number of matches / mismatches / inserts / deletes = %d / %d / %d / %d
-            Percentage of matches / mismatches / inserts / deletes = %.2f / %.2f / %.2f / %.2f
-            """ % (self.commandline, self.reflength, len(self.chromlengths), self.chromosomes(), \
-                   self.num_alignments, self.num_unique_alignments, \
-                   self.num_multi_alignments, self.num_split_alignments, self.num_possibly_split_alignements, \
-                   self.num_real_alignments, self.num_non_alignments, self.num_real_split_alignments, \
-                   self.num_alignments - self.num_non_alignments, self.num_non_alignments, \
-                   self.avg_mapping_quality, self.min_mapping_quality, self.max_mapping_quality, self.num_good_quality, self.num_zero_quality, \
-                   self.num_match, self.num_mismatch, self.num_insert, self.num_delete, \
-                   self.match_percentage, self.mismatch_percentage, self.insert_percentage, self.delete_percentage)
-
-            report += """\n
-            Annotation statistics:
-            Total gene length = %d
-            Number of Transcripts / Exons (Multiexon transcripts) = %d / %d (%d)
-            Maximum number of exons in a gene = %d
-            Gene size (Min / Max / Avg) = %d / %d / %.2f
-            Exon size (Min / Max / Avg) = %d / %d / %.2f
-            """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
-                   self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
-                   self.min_exon_length, self.max_exon_length, self.avg_exon_length)
-
-            report += """\n
-            Grouped annotation (alternate splicing) statistics:
-            Number of annotation groups (genes) = %d
-            Number of genes with alternate splicing = %d
-            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
-            Maximum / minimum number of exons in spliced alignments = %d / %d
-            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
-                   self.max_spliced_alignments, self.min_spliced_alignments, \
-                   self.max_spliced_exons, self.min_spliced_exons)
-
-            report += """\n
-            Mapping quality information:
-            Bases in reads (aligned / total) (percent) = (%d / %d) (%.2f%%)
-            Genes covered / missed / total = %d / %d / %d
-            Exons covered / missed / total = %d / %d / %d
-            Alignments on genes hit / partial / missed = %d / %d / %d
-            Alignments on exons hit / partial / missed = %d / %d / %d
-            Alignments spanning multiple genes = %d
-            Alignments spanning multiple exons = %d
-            Alignments with hit on gene and miss on exons (inside miss) = %d
-            Split alignments with exon miss (or partial hit) = %d
-            Alignments covering exons (all / some / none / multi) = %d / %d / %d / %d
-            Alignments covering an exon (completely / partially) = %d / %d
-            Alignments hitting an exon (start / end / both) = %d / %d / %d
-            Candidate spliced alignments = %d
-            Avg. alignment hit percentage = %.2f
-            Avg. exon hit percentage = %.2f
-            SUMMARY: Good / bad alignments: %d (%.2f%%) / %d (%.2f%%)
-            """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
-                   self.num_genes_covered, self.num_genes - self.num_genes_covered, self.num_genes, \
-                   self.num_exons_covered, self.num_exons - self.num_exons_covered, self.num_exons, \
-                   self.num_hit_alignments, self.num_partial_alignments, self.num_missed_alignments, \
-                   self.num_exon_hit, self.num_exon_partial, self.num_exon_miss, \
-                   self.num_multi_gene_alignments, self.num_multi_exon_alignments, self.num_inside_miss_alignments, self.num_bad_split_alignments, \
-                   self.num_cover_all_exons, self.num_cover_some_exons, self.num_cover_no_exons, self.num_multicover_exons, \
-                   self.num_equal_exons, self.num_partial_exons, \
-                   self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
-                   self.num_possible_spliced_alignment, \
-                   self.avg_exon_hit_perc, self.avg_alignment_hit_perc, \
-                   self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent)
-
-            # Counting the number of expressed genes
-            # This has already been written in the report, but this was the value can be double checked
-            exp_gn_cnt = 0
-            for expression in self.expressed_genes.values():
-                if expression[0] > 0:
-                    exp_gn_cnt += 1
-
-            if self.output_gene_expression:
-                report += """\n
-            Gene/exon expression and coverage information:
-            Number of expressed genes = %d
-            Expressed genes:
-            genename  number_of_exons  gene_hits / gene_covered_bases  [(exon_hits / exon_covered_bases)]...
-                """ % exp_gn_cnt
-
-                if len(self.expressed_genes) != len(self.gene_coverage):
-                    raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' % (len(expressed_genes), len(gene_coverage)))
-
-                for genename in self.expressed_genes.keys():
-                    numexons = len(self.expressed_genes[genename]) - 1
-                    genehits = self.expressed_genes[genename][0]
-                    gene_cov_bs = self.gene_coverage[genename][0]
-                    if genehits > 0:
-                        reportline = '%s  %d  %d  %d' % (genename, numexons, genehits, gene_cov_bs)
-                        for i in range(1, numexons+1):
-                            exonhits = self.expressed_genes[genename][i]
-                            exon_cov_bs = self.gene_coverage[genename][i]
-                            reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
-
-                        report += reportline + '\n'
-
-            return report + '\n'
-        elif self.rtype == ReportType.ANNOTATION_REPORT:
-            report = """\n
-            Command Line: %s
-            Reference format: ANNOTATION
-            General information:
-            Reference length = %d bp
-            Number of chromosomes = %d
-            Chromosomes:
-            %s
-            """ % (self.commandline, self.reflength, len(self.chromlengths), self.chromosomes())
-
-            report += """\n
-            Annotation statistics:
-            Total gene length = %d
-            Number of Genes / Exons (Multiexon genes) = %d / %d (%d)
-            Maximum number of exons in a gene = %d
-            Gene size (Min / Max / Avg) = %d / %d / %.2f
-            Exon size (Min / Max / Avg) = %d / %d / %.2f
-            """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
-                   self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
-                   self.min_exon_length, self.max_exon_length, self.avg_exon_length)
-
-            report += """\n
-            Grouped annotation (alternate splicing) statistics:
-            Number of annotation groups (genes) = %d
-            Number of genes with alternate splicing = %d
-            Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
-            Maximum / minimum number of exons in spliced alignments = %d / %d
-            """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
-                   self.max_spliced_alignments, self.min_spliced_alignments, \
-                   self.max_spliced_exons, self.min_spliced_exons)
-
-            if self.output_alternate_splicing:
-                report += """\n
-            Information on genes with alternate splicing:
-            Number of genes with alternate splicing = %d
-            Alternate splicing genes:
-            genename: [transcript name (number of exons)]...
-                """ % len(self.alternate_splicing)
-
-                for genename, alternate_splicing_info in self.alternate_splicing.items():
-                    report += '%s: %s\n' % (genename, alternate_splicing_info)
-
-            return report + '\n'
-        elif self.rtype == ReportType.TEMP_REPORT:
-            return "\nTEMP report! Nothing to report!\n"
-        else:
-            return "\nERROR: Report not initialized!\n"
+    # def toString_OLD(self):
+    #     if self.rtype == ReportType.FASTA_REPORT:
+    #         report = """\n
+    #         Reference format: FASTA
+    #         General information:
+    #         Reference length = %d bp
+    #         Number of chromosomes = %d
+    #         Chromosomes:\n%s
+    #         Number of alignments (total / unique / non / real) = %d / %d / %d / %d
+    #         Number of alignments (multi / split /possibly split) = %d / %d / %d
+    #         Alignments with / without CIGAR string = %d / %d
+    #         Mapping quality without zeroes (avg / min / max) = %.2f / %d / %d
+    #         Alignments with mapping quality (>0 / =0) = %d / %d
+    #         Number of matches / mismatches / inserts / deletes = %d / %d / %d / %d
+    #         Percentage of matches / mismatches / inserts / deletes = %.2f / %.2f / %.2f / %.2f
+    #         """ % (self.reflength, len(self.chromlengths), self.chromosomes(), \
+    #                self.num_alignments, self.num_unique_alignments, self.num_non_alignments, self.num_real_alignments, \
+    #                self.num_multi_alignments, self.num_split_alignments, self.num_possibly_split_alignements, \
+    #                self.num_alignments - self.num_non_alignments, self.num_non_alignments, \
+    #                self.avg_mapping_quality, self.min_mapping_quality, self.max_mapping_quality, self.num_good_quality, self.num_zero_quality, \
+    #                self.num_match, self.num_mismatch, self.num_insert, self.num_delete, \
+    #                self.match_percentage, self.mismatch_percentage, self.insert_percentage, self.delete_percentage)
+    #         return report + '\n'
+    #     elif self.rtype == ReportType.MAPPING_REPORT:
+    #         report = """\n
+    #         Command Line: %s
+    #         Reference format: ANNOTATION
+    #         General information:
+    #         Reference length = %d bp
+    #         Number of chromosomes = %d
+    #         Chromosomes:
+    #         %s
+    #         Number of alignments in SAM file (total / unique) = %d / %d
+    #         Number of alignments (multi / split /possibly split) = %d / %d / %d
+    #         Number of alignments (real / non / real split) = %d / %d / %d
+    #         Alignments with / without CIGAR string = %d / %d
+    #         Mapping quality without zeroes (avg / min / max) = %.2f / %d / %d
+    #         Alignments with mapping quality (>0 / =0) = %d / %d
+    #         Number of matches / mismatches / inserts / deletes = %d / %d / %d / %d
+    #         Percentage of matches / mismatches / inserts / deletes = %.2f / %.2f / %.2f / %.2f
+    #         """ % (self.commandline, self.reflength, len(self.chromlengths), self.chromosomes(), \
+    #                self.num_alignments, self.num_unique_alignments, \
+    #                self.num_multi_alignments, self.num_split_alignments, self.num_possibly_split_alignements, \
+    #                self.num_real_alignments, self.num_non_alignments, self.num_real_split_alignments, \
+    #                self.num_alignments - self.num_non_alignments, self.num_non_alignments, \
+    #                self.avg_mapping_quality, self.min_mapping_quality, self.max_mapping_quality, self.num_good_quality, self.num_zero_quality, \
+    #                self.num_match, self.num_mismatch, self.num_insert, self.num_delete, \
+    #                self.match_percentage, self.mismatch_percentage, self.insert_percentage, self.delete_percentage)
+    #
+    #         report += """\n
+    #         Annotation statistics:
+    #         Total gene length = %d
+    #         Number of Transcripts / Exons (Multiexon transcripts) = %d / %d (%d)
+    #         Maximum number of exons in a gene = %d
+    #         Gene size (Min / Max / Avg) = %d / %d / %.2f
+    #         Exon size (Min / Max / Avg) = %d / %d / %.2f
+    #         """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
+    #                self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
+    #                self.min_exon_length, self.max_exon_length, self.avg_exon_length)
+    #
+    #         report += """\n
+    #         Grouped annotation (alternate splicing) statistics:
+    #         Number of annotation groups (genes) = %d
+    #         Number of genes with alternate splicing = %d
+    #         Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+    #         Maximum / minimum number of exons in spliced alignments = %d / %d
+    #         """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+    #                self.max_spliced_alignments, self.min_spliced_alignments, \
+    #                self.max_spliced_exons, self.min_spliced_exons)
+    #
+    #         report += """\n
+    #         Mapping quality information:
+    #         Bases in reads (aligned / total) (percent) = (%d / %d) (%.2f%%)
+    #         Genes covered / missed / total = %d / %d / %d
+    #         Exons covered / missed / total = %d / %d / %d
+    #         Alignments on genes hit / partial / missed = %d / %d / %d
+    #         Alignments on exons hit / partial / missed = %d / %d / %d
+    #         Alignments spanning multiple genes = %d
+    #         Alignments spanning multiple exons = %d
+    #         Alignments with hit on gene and miss on exons (inside miss) = %d
+    #         Split alignments with exon miss (or partial hit) = %d
+    #         Alignments covering exons (all / some / none / multi) = %d / %d / %d / %d
+    #         Alignments covering an exon (completely / partially) = %d / %d
+    #         Alignments hitting an exon (start / end / both) = %d / %d / %d
+    #         Candidate spliced alignments = %d
+    #         Avg. alignment hit percentage = %.2f
+    #         Avg. exon hit percentage = %.2f
+    #         SUMMARY: Good / bad alignments: %d (%.2f%%) / %d (%.2f%%)
+    #         """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
+    #                self.num_genes_covered, self.num_genes - self.num_genes_covered, self.num_genes, \
+    #                self.num_exons_covered, self.num_exons - self.num_exons_covered, self.num_exons, \
+    #                self.num_hit_alignments, self.num_partial_alignments, self.num_missed_alignments, \
+    #                self.num_exon_hit, self.num_exon_partial, self.num_exon_miss, \
+    #                self.num_multi_gene_alignments, self.num_multi_exon_alignments, self.num_inside_miss_alignments, self.num_bad_split_alignments, \
+    #                self.num_cover_all_exons, self.num_cover_some_exons, self.num_cover_no_exons, self.num_multicover_exons, \
+    #                self.num_equal_exons, self.num_partial_exons, \
+    #                self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
+    #                self.num_possible_spliced_alignment, \
+    #                self.avg_exon_hit_perc, self.avg_alignment_hit_perc, \
+    #                self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent)
+    #
+    #         # Counting the number of expressed genes
+    #         # This has already been written in the report, but this was the value can be double checked
+    #         exp_gn_cnt = 0
+    #         for expression in self.expressed_genes.values():
+    #             if expression[0] > 0:
+    #                 exp_gn_cnt += 1
+    #
+    #         if self.output_gene_expression:
+    #             report += """\n
+    #         Gene/exon expression and coverage information:
+    #         Number of expressed genes = %d
+    #         Expressed genes:
+    #         genename  number_of_exons  gene_hits / gene_covered_bases  [(exon_hits / exon_covered_bases)]...
+    #             """ % exp_gn_cnt
+    #
+    #             if len(self.expressed_genes) != len(self.gene_coverage):
+    #                 raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' % (len(expressed_genes), len(gene_coverage)))
+    #
+    #             for genename in self.expressed_genes.keys():
+    #                 numexons = len(self.expressed_genes[genename]) - 1
+    #                 genehits = self.expressed_genes[genename][0]
+    #                 gene_cov_bs = self.gene_coverage[genename][0]
+    #                 if genehits > 0:
+    #                     reportline = '%s  %d  %d  %d' % (genename, numexons, genehits, gene_cov_bs)
+    #                     for i in range(1, numexons+1):
+    #                         exonhits = self.expressed_genes[genename][i]
+    #                         exon_cov_bs = self.gene_coverage[genename][i]
+    #                         reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
+    #
+    #                     report += reportline + '\n'
+    #
+    #         return report + '\n'
+    #     elif self.rtype == ReportType.ANNOTATION_REPORT:
+    #         report = """\n
+    #         Command Line: %s
+    #         Reference format: ANNOTATION
+    #         General information:
+    #         Reference length = %d bp
+    #         Number of chromosomes = %d
+    #         Chromosomes:
+    #         %s
+    #         """ % (self.commandline, self.reflength, len(self.chromlengths), self.chromosomes())
+    #
+    #         report += """\n
+    #         Annotation statistics:
+    #         Total gene length = %d
+    #         Number of Genes / Exons (Multiexon genes) = %d / %d (%d)
+    #         Maximum number of exons in a gene = %d
+    #         Gene size (Min / Max / Avg) = %d / %d / %.2f
+    #         Exon size (Min / Max / Avg) = %d / %d / %.2f
+    #         """ % (self.totalGeneLength, self.num_genes, self.num_exons, self.num_multiexon_genes, self.max_exons_per_gene, \
+    #                self.min_gene_length, self.max_gene_length, self.avg_gene_length, \
+    #                self.min_exon_length, self.max_exon_length, self.avg_exon_length)
+    #
+    #         report += """\n
+    #         Grouped annotation (alternate splicing) statistics:
+    #         Number of annotation groups (genes) = %d
+    #         Number of genes with alternate splicing = %d
+    #         Maximum / minimum number of alternate spliced alignments for a gene = %d / %d
+    #         Maximum / minimum number of exons in spliced alignments = %d / %d
+    #         """ % (self.num_annotation_groups, self.num_alternate_spliced_genes, \
+    #                self.max_spliced_alignments, self.min_spliced_alignments, \
+    #                self.max_spliced_exons, self.min_spliced_exons)
+    #
+    #         if self.output_alternate_splicing:
+    #             report += """\n
+    #         Information on genes with alternate splicing:
+    #         Number of genes with alternate splicing = %d
+    #         Alternate splicing genes:
+    #         genename: [transcript name (number of exons)]...
+    #             """ % len(self.alternate_splicing)
+    #
+    #             for genename, alternate_splicing_info in self.alternate_splicing.items():
+    #                 report += '%s: %s\n' % (genename, alternate_splicing_info)
+    #
+    #         return report + '\n'
+    #     elif self.rtype == ReportType.TEMP_REPORT:
+    #         return "\nTEMP report! Nothing to report!\n"
+    #     else:
+    #         return "\nERROR: Report not initialized!\n"
 
 
 if __name__ == "__main__":
