@@ -45,6 +45,7 @@ Allowed options:
 
     -a <file> : a reference annotation (GFF/GTF/BED) file
     -o (--output) <file> : output file to which the report will be written
+    -ex (--expression) : if present, the script will also calculate and output gene expression data
 
 ### eval-annotations
 Used in eval-annotations mode, RNAseqEval.py script will print out basic information on a annotations file.
@@ -82,11 +83,11 @@ General information on FASTA reference and mapping SAM file:
     - Reference length - In eval-mapping mode this will be the total lenght of all chromosomes in a FASTA rederence, while in eval-annotations mode this will be the total length of all genes.
     - Number of chromosomes
     - List of chromosomes
-    - Number of alignments in SAM file (total / unique)
+    - Number of alignments in SAM file (total / unique) - two alignments are not unique if they represent the same read
     - Alignments with / without CIGAR string
     - Mapping quality without zeroes (avg / min / max)
     - Alignments with mapping quality (>0 / =0)
-    - Number of matches / mismatches / inserts / deletes
+    - Number of matches / mismatches / inserts / deletes - calculated per base in total for all reads
     - Percentage of matches / mismatches / inserts / deletes
 
 Annotation statistics:
@@ -102,14 +103,14 @@ Annotation statistics:
 Mapping quality information obtained by comparing alignements in a SAM file to given annotations. Only in eval-mapping mode if annotations are provided.
 
      - Total number and percentage of bases aligned for all reads
-     - The number of transcripts (annotations) "hit" by all reads
-     - Total number of exons "hit" by all reads
+     - The number of transcripts (annotations) "hit" by all reads - an annotation is "hit" by a read if the read overlaps it on at least 5 bases
+     - Total number of exons "hit" by all reads - an exon is "hit" by a read if the read overlaps it on at least 5 bases
      - Number of alignments with "hit" on transcripts
      - Number of alignments with "hit" on exons
      - Number of alignments matching a beginning and an end of an exon
-     - Number of contiguous and non contiguous alignments
+     - Number of contiguous and non contiguous alignments - as described earlier in the text
 
-The script also calculates gene expression and gene/exon coverage information. this information is printed only in eval-mapping mode if annotations are provided. The script will output the number of expressed transcripts. A transcript is considered expressed if at least one read is mapped to its position. For each transcript, the script also prints out the following:
+If so specified by the option -ex (--expression), the script also calculates gene expression and gene/exon coverage information. This option is available only in eval-mapping mode if annotations are provided. The script will output the number of expressed transcripts. A transcript is considered expressed if at least one read is mapped to its position. For each transcript, the script also prints out the following:
 
     - transcript name
     - number of exons
