@@ -1,5 +1,5 @@
 # RNAseqEval.py
-Run RNAseqEval.py for general evaulation of mappings in SAM format against reference and optionally annotations. This script is intended to evaluate real dataset mapping. Run RNAseqEval.py without any arguments to print options.
+Run RNAseqEval.py for general evaluation of mappings in SAM format against reference and optionally annotations. This script is intended to evaluate real dataset mapping. Run RNAseqEval.py without any arguments to print options.
 
 Usage:
      
@@ -48,7 +48,7 @@ Allowed options:
     -ex (--expression) : if present, the script will also calculate and output gene expression data
 
 ### eval-annotations
-Used in eval-annotations mode, RNAseqEval.py script will print out basic information on a annotations file.
+Used in eval-annotations mode, RNAseqEval.py script will print out basic information on an annotations file.
 
 Usage:
 
