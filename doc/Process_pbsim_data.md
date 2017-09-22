@@ -45,25 +45,30 @@ The evaluation is run as follows:
 A detailed description of the process used to prepare simulated datasets for our RNA benchmark is given in [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md).
 
 ## Output
-Process_pbsim_daty.py scripts generates a report containing following information:
+Process_pbsim_daty.py scripts generates a report containing various information.
 
-    Number of original SAM lines (in the input SAM file)
-    Number of usable whole alignments (with valid CIGAR string)
-    Number of annotations
-    Number of multiexon genes
+It contains some general information on the input files:
 
-    Number of reads aligned to a start of an exon
-    Number of reads aligned to an end of an exon
-    Number of reads aligned to both, start and end of an exon
-    Number of good whole alignments
+    Original Samlines - Number of original SAM lines (in the input SAM file)
+    Usable whole alignments (with valid CIGAR string) - number of alignments having a valid CIGAR string (in the input SAM file)
+    Annotations - number of annotations (in the input GFF/GTF/BED file)
+    Multiexon genes - number of annotations describing genes with more than one exon (in the input GFF/GTF/BED file)
 
-    Number of alignments that hit both ends
-    Number of alignments that hit all parts
-    Number of alignments that hit at least one part
-    Number of alignments that equals at least one part
+It contains some general infomation gained by comparing alignments to annotations:
 
-    Number of split reads
-    Number of alignments that hit both ends, for SPLIT reads only
-    Number of alignments that hit all parts, for SPLIT reads only
-    Number of alignments that hit at least one part, SPLITfor SPLIT reads only
-    Number of alignments that equals at least one part, for SPLIT reads only
+    Number of exon start hits - number of reads correctly aligned to a start of an exon
+    Number of exon end hits - number of reads correctly aligned to an end of an exon
+    Number of exon start and end hits - number of reads correctly aligned to both a start and an end of an exon
+    Number of good whole alignments - number of alignments that overlap at least one exon
+
+It contains some infomation obtained by comparing alignments from the input SAM file to the read origins from a set of MAF files withing the simulation folder:
+
+    MAF: Correct alignment - the number of alignments that correctly map the read to its position of origin (within 5 bases)
+    MAF: Hit all parts - the number of alignments that overlap all exons from the read origin, each overlap must be at least 5 bases
+    MAF: Hit at least one part - the number of alignments that overlap at least one exon from the read origin, the overlap must be at least 5 bases
+    MAF: Equals at least one part - the number alignments that correctly map the read to at least one exon from its position of origin (within 5 bases)
+    MAF: Number of split reads - the number of reads that originate from more than one exon
+    MAF: Correct alignment, SPLIT read - same as "MAF: Correct alignment", but only for "split reads"
+    MAF: Hit all parts, SPLIT read - same as "MAF: Hit all parts", but only for "split reads"
+    MAF: Hit at least one part, SPLIT read - same as "MAF: Hit at least one part", but only for "split reads"
+    MAF: Equals at least one part, SPLIT read - same as "MAF: Equals at least one part", but only for "split reads"
