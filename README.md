@@ -1,5 +1,5 @@
 # RNAseqEval
-A collection of tools for evaluating RNA seq mapping. The tools were used to benchmark some RNA mapping tools on real and synthetic third generation sequencing datasets. Detailed description of synthetic dataset preparation can be found at [RNAseq_benchmark/data_preparation.md](RNAseq_benchmark/data_preparation.md). Description of the evaluation process for real and simulated datasets can be found at [RNAseq_benchmark/RNAseq_benchmark.md](RNAseq_benchmark/RNAseq_benchmark.md).
+A collection of tools for evaluating RNA seq mapping. The tools were used to benchmark some RNA mapping tools on real and synthetic third generation sequencing datasets. Detailed description of synthetic dataset preparation can be found at [RNAseq_benchmark/Data_preparation.md](RNAseq_benchmark/Data_preparation.md). Description of the evaluation process for real and simulated datasets can be found at [RNAseq_benchmark/RNAseq_benchmark.md](RNAseq_benchmark/RNAseq_benchmark.md).
 
 ## Installation
 Since the RNAseqEval repository contains python scripts, it does not require an installation. Only requirement is to clone RNAseqEval repository together with the samscripts submodule:
@@ -13,7 +13,7 @@ The other way is to clone the main repository first and then update the submodul
     git submodule update --init --recursive
 
 ## Prerequisites
-The repository contains Python scripts only and requires a Python 2 interpreter. We have tested it on Ubuntu server 14.04 and 16.04 with Python 2.7.12 However, we believe that it should also work with older versions of Paython and on other operating systems.
+The repository contains Python scripts only and requires a Python 2 interpreter. We have tested it on Ubuntu server 14.04 and 16.04 with Python 2.7.12 However, we believe that it should also work with older versions of Python and on other operating systems.
 
 ## Scripts
 
