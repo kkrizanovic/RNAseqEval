@@ -40,7 +40,8 @@ paramdefs = {'-a' : 1,
              '-as' : 0,
              '--alternate_splicing' : 0,
              '--print_erroneous_reads' : 0,
-             '--no_check_strand' : 0}
+             '--no_check_strand' : 0,
+             '--no_per_base_stats' : 0}
 
 
 def cleanup():
@@ -300,7 +301,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 for samline in samline_list[1:]:            # look through other alignments and see if they could form a split alignment with the current temp_samline_list
                     if BBMapFormat:
                         # All deletes that are 10 or more bases are replaced with Ns of the same length
-                        operations = re.findall(pattern, samline)
+                        operations = re.findall(pattern, samline.cigar)
                         newcigar = ''
                         for op in operations:
                             op0 = op[0]
@@ -717,6 +718,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     if '--no_check_strand' in paramdict:
         check_strand = False
 
+    per_base_stats = True
+    if '--no_per_base_stats' in paramdict:
+        per_base_stats = False
+
     sys.stderr.write('\n(%s) Loading and processing FASTA reference ... ' % datetime.now().time().isoformat())
     [chromname2seq, headers, seqs, quals] = load_and_process_reference(ref_file, paramdict, report)
 
@@ -766,64 +771,65 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
 
     # Setting up some sort of a progress bar
-    sys.stderr.write('\n(%s) Analyzing CIGAR strings ...  ' % datetime.now().time().isoformat())
-    sys.stderr.write('\nProgress: | 1 2 3 4 5 6 7 8 9 0 |')
-    sys.stderr.write('\nProgress: | ')
-    numsamlines = len(samlines)
-    progress = 0
-    currentbar = 0.1
-    for samline_list in samlines:
-        # Calculating progress
-        progress += 1
-        if float(progress)/numsamlines >= currentbar:
-            sys.stderr.write('* ')
-            currentbar += 0.1
-        # Calculate readlength from the first alignment (should be the same)
-        # and then see how many of those bases were actually aligned
-        readlength = samline_list[0].CalcReadLengthFromCigar()
-        basesaligned = 0
-        for samline in samline_list:
-            chromname = getChromName(samline.rname)
-            if chromname not in chromname2seq:
+    if per_base_stats == True:
+        sys.stderr.write('\n(%s) Analyzing CIGAR strings ...  ' % datetime.now().time().isoformat())
+        sys.stderr.write('\nProgress: | 1 2 3 4 5 6 7 8 9 0 |')
+        sys.stderr.write('\nProgress: | ')
+        numsamlines = len(samlines)
+        progress = 0
+        currentbar = 0.1
+        for samline_list in samlines:
+            # Calculating progress
+            progress += 1
+            if float(progress)/numsamlines >= currentbar:
+                sys.stderr.write('* ')
+                currentbar += 0.1
+            # Calculate readlength from the first alignment (should be the same)
+            # and then see how many of those bases were actually aligned
+            readlength = samline_list[0].CalcReadLengthFromCigar()
+            basesaligned = 0
+            for samline in samline_list:
+                chromname = getChromName(samline.rname)
+                if chromname not in chromname2seq:
+                    # import pdb
+                    # pdb.set_trace()
+                    raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
+                chromidx = chromname2seq[chromname]
+
+                cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
+                pos = samline.pos
+                quals = samline.qual
+
+                # Using regular expressions to find repeating digit and skipping one character after that
+                # Used to separate CIGAR string into individual operations
+                pattern = '(\d+)(.)'
+                operations = re.findall(pattern, cigar)
+
+                for op in operations:
+                    if op[1] in ('M', '='):
+                        numMatch += int(op[0])
+                        basesaligned += int(op[0])
+                    elif op[1] == 'I':
+                        numInsert += int(op[0])
+                        basesaligned += int(op[0])
+                    elif op[1] == 'D':
+                        numDelete += int(op[0])
+                    elif op[1] =='X':
+                        numMisMatch += int(op[0])
+                        basesaligned += int(op[0])
+                    elif op[1] in ('N', 'S', 'H', 'P'):
+                        pass
+                    else:
+                        sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
+
+            total_read_length += readlength
+            total_bases_aligned += basesaligned
+            if basesaligned > readlength:
                 # import pdb
                 # pdb.set_trace()
-                raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
-            chromidx = chromname2seq[chromname]
-
-            cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
-            pos = samline.pos
-            quals = samline.qual
-
-            # Using regular expressions to find repeating digit and skipping one character after that
-            # Used to separate CIGAR string into individual operations
-            pattern = '(\d+)(.)'
-            operations = re.findall(pattern, cigar)
-
-            for op in operations:
-                if op[1] in ('M', '='):
-                    numMatch += int(op[0])
-                    basesaligned += int(op[0])
-                elif op[1] == 'I':
-                    numInsert += int(op[0])
-                    basesaligned += int(op[0])
-                elif op[1] == 'D':
-                    numDelete += int(op[0])
-                elif op[1] =='X':
-                    numMisMatch += int(op[0])
-                    basesaligned += int(op[0])
-                elif op[1] in ('N', 'S', 'H', 'P'):
-                    pass
-                else:
-                    sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
-
-        total_read_length += readlength
-        total_bases_aligned += basesaligned
-        if basesaligned > readlength:
-            # import pdb
-            # pdb.set_trace()
-            raise Exception('\nERROR counting aligned and total bases!')
-            # TODO: See what happens here
-            pass
+                raise Exception('\nERROR counting aligned and total bases!')
+                # TODO: See what happens here
+                pass
 
     # Closing progress bar
     sys.stderr.write('|')
@@ -1253,47 +1259,52 @@ def eval_mapping_fasta(ref_file, sam_file, paramdict):
     numInsert = 0
     numDelete = 0
 
-    # Looking at SAM lines to estimate general mapping quality
-    for samline_list in samlines:
-        for samline in samline_list:
-            quality = samline.chosen_quality
-            if quality > 0:
-                report.num_good_quality += 1
-                if report.max_mapping_quality == 0 or report.max_mapping_quality < quality:
-                    report.max_mapping_quality = quality
-                if report.min_mapping_quality == 0 or report.min_mapping_quality > quality:
-                    report.min_mapping_quality = quality
-                numq += 1
-                sumq += quality
-            else:
-                report.num_zero_quality += 1
+    per_base_stats = True
+    if '--no_per_base_stats' in paramdict:
+        per_base_stats = False
 
-            chromname = getChromName(samline.rname)
-            if chromname not in chromname2seq:
-                raise Exception('\nERROR: Unknown choromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
-            chromidx = chromname2seq[chromname]
-
-            cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
-            pos = samline.pos
-            quals = samline.qual
-
-            # Using regular expressions to find repeating digit and skipping one character after that
-            pattern = '(\d+)(.)'
-            operations = re.findall(pattern, cigar)
-
-            for op in operations:
-                if op[1] in ('M', '='):
-                    numMatch += int(op[0])
-                elif op[1] == 'I':
-                    numInsert += int(op[0])
-                elif op[1] == 'D':
-                    numDelete += int(op[0])
-                elif op[1] =='X':
-                    numMisMatch += int(op[0])
-                elif op[1] in ('N', 'S', 'H', 'P'):
-                    pass
+    if per_base_stats:
+        # Looking at SAM lines to estimate general mapping quality
+        for samline_list in samlines:
+            for samline in samline_list:
+                quality = samline.chosen_quality
+                if quality > 0:
+                    report.num_good_quality += 1
+                    if report.max_mapping_quality == 0 or report.max_mapping_quality < quality:
+                        report.max_mapping_quality = quality
+                    if report.min_mapping_quality == 0 or report.min_mapping_quality > quality:
+                        report.min_mapping_quality = quality
+                    numq += 1
+                    sumq += quality
                 else:
-                    sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
+                    report.num_zero_quality += 1
+
+                chromname = getChromName(samline.rname)
+                if chromname not in chromname2seq:
+                    raise Exception('\nERROR: Unknown choromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
+                chromidx = chromname2seq[chromname]
+
+                cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
+                pos = samline.pos
+                quals = samline.qual
+
+                # Using regular expressions to find repeating digit and skipping one character after that
+                pattern = '(\d+)(.)'
+                operations = re.findall(pattern, cigar)
+
+                for op in operations:
+                    if op[1] in ('M', '='):
+                        numMatch += int(op[0])
+                    elif op[1] == 'I':
+                        numInsert += int(op[0])
+                    elif op[1] == 'D':
+                        numDelete += int(op[0])
+                    elif op[1] =='X':
+                        numMisMatch += int(op[0])
+                    elif op[1] in ('N', 'S', 'H', 'P'):
+                        pass
+                    else:
+                        sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
 
     report.num_match = numMatch
     report.num_mismatch = numMisMatch
@@ -1301,6 +1312,9 @@ def eval_mapping_fasta(ref_file, sam_file, paramdict):
     report.num_delete = numDelete
 
     total = numMatch + numMisMatch + numInsert + numDelete
+    # KK: Just to be sure
+    if total == 0:
+        total = 1
 
     if total > 0:
         report.match_percentage = float(report.num_match)/total
@@ -1584,6 +1598,7 @@ if __name__ == '__main__':
             sys.stderr.write('options:"\n')
             sys.stderr.write('-a <file> : a reference annotation (GFF/GTF/BED) file\n')
             sys.stderr.write('-o (--output) <file> : output file to which the report will be written\n')
+            sys.stderr.write('-ex (--expression) : if present, the script will also calculate and output gene expression data\n')
             sys.stderr.write('\n')
             exit(1)
 
