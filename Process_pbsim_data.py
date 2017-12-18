@@ -589,6 +589,11 @@ if __name__ == '__main__':
             sys.stderr.write('Usage:\n')
             sys.stderr.write('%s %s <pbsim data folder> <results file> <annotations file> <options>\n'% (sys.argv[0], sys.argv[1]))
             sys.stderr.write('\n')
+            sys.stderr.write('\noptions:\n')
+            sys.stderr.write('\t\t--split-qnames: while calculating the statistics also sorts query names\n')
+            sys.stderr.write('\t\t                into four files - file_correct.names, file_hitall.names\n')
+            sys.stderr.write('\t\t                                  file_hitone.names, file_bad.names\n')
+            sys.stderr.write('\n')
             exit(1)
 
         datafolder = sys.argv[2]
