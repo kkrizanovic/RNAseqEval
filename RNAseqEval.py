@@ -41,7 +41,9 @@ paramdefs = {'-a' : 1,
              '--alternate_splicing' : 0,
              '--print_erroneous_reads' : 0,
              '--no_check_strand' : 0,
-             '--no_per_base_stats' : 0}
+             '--no_per_base_stats' : 0,
+             '-sqn' : 0,
+             '--save_query_names' : 0}
 
 
 def cleanup():
@@ -181,8 +183,8 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
     qnames_with_multiple_alignments = {}
     [sam_hash, sam_hash_num_lines, sam_hash_num_unique_lines] = utility_sam.HashSAMWithFilter(sam_file, qnames_with_multiple_alignments)
 
-    # If variable BBMapFormat is set to true, all samfiles referring too the same query will be collected together
-    # Stil have to decide what to do with query names
+    # If variable BBMapFormat is set to true, all samfiles referring to the same query will be collected together
+    # Stil have to decide what to do with query names, currently removing '_part'
     if BBMapFormat:
         new_sam_hash = {}
         for (qname, sam_lines) in sam_hash.iteritems():
@@ -205,6 +207,11 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
     # Setting this to true so that large deletions are turned into Ns
     # BBMap marks intron RNA alignment gaps with deletions!
     BBMapFormat = True
+
+    # If this option is set in parameters, unmapped queries will be listed in the report
+    save_qnames = False
+    if '-sqn' in paramdict or '--save_query_names' in paramdict or '--split-qnames' in paramdict:
+        save_qnames = True
 
     # Reorganizing SAM lines, removing unmapped queries, leaving only the first alignment and
     # other alignments that possibly costitute a split alignment together with the first one
@@ -319,6 +326,9 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                     report.num_possibly_split_alignements += 1
                 samlines.append(temp_samline_list)
         else:
+            # Samline has invalid cigar and is considered unmapped
+            if save_qnames:
+                report.unmapped_names.append(samline_list[0].qname)
             pass
 
     # Sorting SAM lines according to the position of the first alignment
@@ -430,6 +440,14 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
     check_strand = True
     if '--no_check_strand' in paramdict:
         check_strand = False
+
+    calculate_expression = False
+    if '-ex' in paramdict or '--expression' in paramdict:
+        calculate_expression = True
+
+    save_qnames = False
+    if '-sqn' in paramdict or '--save_query_names' in paramdict:
+        save_qnames = True
 
     for samline_list in samlines:
         # Initializing information for a single read
@@ -593,8 +611,9 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                             exonendmap[item_idx] = 1
 
                         exon_cnt += 1
-                        expressed_genes[annotation.genename][item_idx] += 1
-                        gene_coverage[annotation.genename][item_idx] += item.basesInside(lstartpos, lendpos)
+                        if calculate_expression == True:
+                            expressed_genes[annotation.genename][item_idx] += 1
+                            gene_coverage[annotation.genename][item_idx] += item.basesInside(lstartpos, lendpos)
                         exonHit = True
                         if item.insideItem(lstartpos, lendpos):
                             exonPartial = False
@@ -647,6 +666,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
         if isGood:
             report.num_good_alignment += 1
+            report.contig_names.append(samline_list[0].qname)
         else:
             report.num_bad_alignment += 1
 
@@ -686,8 +706,10 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
         if exonHit:
             report.num_exon_hit += 1
+            report.hitone_names.append(samline_list[0].qname)
         else:
             report.num_exon_miss += 1
+            report.incorr_names.append(samline_list[0].qname)
 
         if hit and not exonHit:
             report.num_inside_miss_alignments += 1
@@ -721,6 +743,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     per_base_stats = True
     if '--no_per_base_stats' in paramdict:
         per_base_stats = False
+
+    save_qnames = False
+    if '-sqn' in paramdict or '--save_query_names' in paramdict:
+        save_qnames = True
 
     sys.stderr.write('\n(%s) Loading and processing FASTA reference ... ' % datetime.now().time().isoformat())
     [chromname2seq, headers, seqs, quals] = load_and_process_reference(ref_file, paramdict, report)
@@ -796,31 +822,39 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
                 chromidx = chromname2seq[chromname]
 
-                cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
-                pos = samline.pos
-                quals = samline.qual
+                # Testing code
+                try:
+                    cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
+                    pos = samline.pos
+                    quals = samline.qual
 
-                # Using regular expressions to find repeating digit and skipping one character after that
-                # Used to separate CIGAR string into individual operations
-                pattern = '(\d+)(.)'
-                operations = re.findall(pattern, cigar)
+                    # Using regular expressions to find repeating digit and skipping one character after that
+                    # Used to separate CIGAR string into individual operations
+                    pattern = '(\d+)(.)'
+                    operations = re.findall(pattern, cigar)
 
-                for op in operations:
-                    if op[1] in ('M', '='):
-                        numMatch += int(op[0])
-                        basesaligned += int(op[0])
-                    elif op[1] == 'I':
-                        numInsert += int(op[0])
-                        basesaligned += int(op[0])
-                    elif op[1] == 'D':
-                        numDelete += int(op[0])
-                    elif op[1] =='X':
-                        numMisMatch += int(op[0])
-                        basesaligned += int(op[0])
-                    elif op[1] in ('N', 'S', 'H', 'P'):
-                        pass
-                    else:
-                        sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
+                    for op in operations:
+                        if op[1] in ('M', '='):
+                            numMatch += int(op[0])
+                            basesaligned += int(op[0])
+                        elif op[1] == 'I':
+                            numInsert += int(op[0])
+                            basesaligned += int(op[0])
+                        elif op[1] == 'D':
+                            numDelete += int(op[0])
+                        elif op[1] =='X':
+                            numMisMatch += int(op[0])
+                            basesaligned += int(op[0])
+                        elif op[1] in ('N', 'S', 'H', 'P'):
+                            pass
+                        else:
+                            sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
+                except Exception:
+                    # import pdb
+                    # pdb.set_trace()
+                    sys.stderr.write('ERROR: querry/ref/pos = %s/%s/%d \n' % (samline.qname, samline.rname, samline.pos))
+                    pass
+
 
             total_read_length += readlength
             total_bases_aligned += basesaligned
@@ -887,7 +921,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
             part_annotations[partname].append(annotation)
             genename = annotation.genename
 
-    # Not separating accouring to the strand
+    # Not separating according to the strand
     else:
         for chromname in chromname2seq.keys():      # Initializing
             partlist.append(chromname)
@@ -957,6 +991,11 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         report.num_exon_partial += t_report.num_exon_partial
         report.num_exon_miss += t_report.num_exon_miss
         report.num_inside_miss_alignments += t_report.num_inside_miss_alignments
+        report.hitone_names += t_report.hitone_names
+        report.contig_names += t_report.contig_names
+        report.incorr_names += t_report.incorr_names
+        report.unmapped_names += t_report.unmapped_names
+
         # Double counted!! (but since only relative values are taken into account, it's not relevant)
         # report.num_good_alignment += t_report.num_good_alignment
         # report.num_bad_alignment += t_report.num_bad_alignment
@@ -1334,12 +1373,29 @@ def eval_mapping_fasta(ref_file, sam_file, paramdict):
 def eval_mapping(ref_file, sam_file, paramdict):
 
     out_filename = ''
+    hitone_filename = ''
+    contig_filename = ''
+    incorr_filename = ''
+    unmapped_filename = ''
     out_file = None
+
+    save_qnames = False
+    if '-sqn' in paramdict or '--save_query_names' in paramdict:
+        save_qnames = True
+        if '-o' not in paramdict and '--output' not in paramdict or '-a' not in paramdict:
+            sys.stderr.write('\nInvalid parameters. Paramater --save_query_names must be used with paramters --output and -a')
+            exit()
 
     if '-o' in paramdict:
         out_filename = paramdict['-o'][0]
     elif '--output' in paramdict:
         out_filename = paramdict['--output'][0]
+
+    if save_qnames == True:
+        hitone_filename = out_filename + '_hit1.names'
+        contig_filename = out_filename + '_ctg.names'
+        incorr_filename = out_filename + '_bad.names'
+        unmapped_filename = out_filename + '_unmmapped.names'
 
     if out_filename != '':
         out_file = open(out_filename, 'w+')
@@ -1355,7 +1411,24 @@ def eval_mapping(ref_file, sam_file, paramdict):
 
     report.commandline = paramdict['command']
 
+    with open(hitone_filename, 'w+') as hitone_file:
+        hitone_file.write(report.get_hitone_names())
+        hitone_file.close()
+
+    with open(contig_filename, 'w+') as contig_file:
+        contig_file.write(report.get_contig_names())
+        contig_file.close()
+
+    with open(incorr_filename, 'w+') as incorr_file:
+        incorr_file.write(report.get_incorr_names())
+        incorr_file.close()
+
+    with open(unmapped_filename, 'w+') as unmapped_file:
+        unmapped_file.write(report.get_unmapped_names())
+        unmapped_file.close()
+
     out_file.write(report.toString())
+    out_file.close()
 
 
 def eval_annotations(annotations_file, paramdict):
@@ -1598,7 +1671,13 @@ if __name__ == '__main__':
             sys.stderr.write('options:"\n')
             sys.stderr.write('-a <file> : a reference annotation (GFF/GTF/BED) file\n')
             sys.stderr.write('-o (--output) <file> : output file to which the report will be written\n')
-            sys.stderr.write('-ex (--expression) : if present, the script will also calculate and output gene expression data\n')
+            sys.stderr.write('-ex (--expression) : calculate and output gene expression\n')
+            sys.stderr.write('--no_check_strand : when matching alignments to annotations, do not take strand \n')
+            sys.stderr.write('                    into account, only chromosome and position\n')
+            sys.stderr.write('-sqn (--save_query_names) : save query names for alignments that managed to hit an exon\n')
+            sys.stderr.write('                            and for contiguous alignments. Query names are saved to files\n')
+            sys.stderr.write('                            with filenames determined from output file. \n')
+            sys.stderr.write('                            For this option output and annotation files must be specified\n')
             sys.stderr.write('\n')
             exit(1)
 
@@ -1624,6 +1703,7 @@ if __name__ == '__main__':
             sys.stderr.write('-o (--output) <file> : output file to which the report will be written\n')
             sys.stderr.write('\n')
             exit(1)
+
 
         annotation_file = sys.argv[2]
 

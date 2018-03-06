@@ -62,6 +62,7 @@ def analyze_chimeric_SAM(filename):
 
     fname, fext = os.path.splitext(filename)
     count = 0
+    count_all = 0
     chimeric_reads = {}
 
     if fext != '.SAM' and fext != '.sam':
@@ -73,6 +74,7 @@ def analyze_chimeric_SAM(filename):
     [sam_hash, sam_hash_num_lines, sam_hash_num_unique_lines] = utility_sam.HashSAMWithFilter(filename, qnames_with_multiple_alignments)
 
     for (samline_key, samline_list) in sam_hash.iteritems():
+        count_all += 1
         for samline in samline_list:
             # import pdb
             # pdb.set_trace()
@@ -88,6 +90,7 @@ def analyze_chimeric_SAM(filename):
 
     sys.stderr.write('\n Count occurences: %d' % count)
     sys.stderr.write('\n Count reads: %d' % len(chimeric_reads))
+    sys.stderr.write('\n Count all reads: %d' % count_all)
 
 
 

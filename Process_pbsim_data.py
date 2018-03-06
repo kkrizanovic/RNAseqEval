@@ -47,7 +47,9 @@ simFolderDict = benchmark_params.simFolderDict
 
 paramdefs = {'--version' : 0,
              '-v' : 0,
-             '--split-qnames' : 0}
+             '--split-qnames' : 1,
+             '-sqn' : 0,
+             '--save_query_names' : 0}
 
 
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
@@ -73,25 +75,35 @@ def interval_overlaps(interval1, interval2, allowed_inacc = Annotation_formats.D
 def processData(datafolder, resultfile, annotationfile, paramdict):
 
     split_qnames = False
+    filename = ''
     if '--split-qnames' in paramdict:
         split_qnames = True
+        filename = paramdict['--split-qnames'][0]
+
+    filename_correct = filename + '_correct.names'
+    filename_hitall = filename + '_hitall.names'
+    filename_hitone = filename + '_hitone.names'
+    filename_bad = filename + '_incorrect.names'
+    filename_unmapped = filename + '_unmapped.names'
 
     file_correct = None
     file_hitall = None
     file_hitone = None
     file_bad = None
+    file_unmapped = None
     folder = os.getcwd()
 
     # If splittng qnames into files, have to open files first
     if split_qnames:
-        file_correct = open(os.path.join(folder, 'file_correct.names'), 'w+')
-        file_hitall = open(os.path.join(folder, 'file_hitall.names'), 'w+')
-        file_hitone = open(os.path.join(folder, 'file_hitone.names'), 'w+')
-        file_bad = open(os.path.join(folder, 'file_bad.names'), 'w+')
+        file_correct = open(os.path.join(folder, filename_correct), 'w+')
+        file_hitall = open(os.path.join(folder, filename_hitall), 'w+')
+        file_hitone = open(os.path.join(folder, filename_hitone), 'w+')
+        file_bad = open(os.path.join(folder, filename_bad), 'w+')
 
     # Loading results SAM file
-    report = EvalReport(ReportType.FASTA_REPORT)    # not needed
-    paramdict = {}
+    report = EvalReport(ReportType.FASTA_REPORT)    # not really needed, used for unmapped query names
+    # Have to preserve the paramdict
+    # paramdict = {}
 
     sys.stderr.write('\n(%s) Loading and processing SAM file with mappings ... ' % datetime.now().time().isoformat())
     all_sam_lines = RNAseqEval.load_and_process_SAM(resultfile, paramdict, report, BBMapFormat = True)
@@ -493,6 +505,11 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
         else:
             s_whole_alignment_misses += 1
 
+    # Writting unmapped query names to a file, if so specified
+    if split_qnames:
+        with open(filename_unmapped, 'w+') as file_unmapped:
+            file_unmapped.write(report.get_unmapped_names())
+            file_unmapped.close()
 
     # Printing out results : NEW
     # Variables names matching RNA benchmark paper

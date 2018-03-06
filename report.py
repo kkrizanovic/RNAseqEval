@@ -152,6 +152,15 @@ class EvalReport:
         self.alternate_splicing = {}
         self.output_alternate_splicing = True
 
+        # Lists for saving qnames
+        # - qnames that overlap one exon
+        # - qnames that have contiguous alignment
+        # - qames that have incorrect alignment
+        self.hitone_names = []
+        self.contig_names = []
+        self.incorr_names = []
+        self.unmapped_names = []
+
 
     def chromosomes(self):
         output = '\t\t'
@@ -162,6 +171,29 @@ class EvalReport:
 
         return output
 
+    def get_hitone_names(self):
+        report = ''
+        for name in self.hitone_names:
+            report += name + '\n'
+        return report
+
+    def get_contig_names(self):
+        report = ''
+        for name in self.contig_names:
+            report += name + '\n'
+        return report
+
+    def get_incorr_names(self):
+        report = ''
+        for name in self.incorr_names:
+            report += name + '\n'
+        return report
+
+    def get_unmapped_names(self):
+        report = ''
+        for name in self.unmapped_names:
+            report += name + '\n'
+        return report
 
     # New toString function for printing out reports
     # Values reported are consistent with the benchmark paper!
