@@ -49,9 +49,10 @@ paramdefs = {'--version' : 0,
              '-v' : 0,
              '--split-qnames' : 1,
              '-sqn' : 0,
-             '--save_query_names' : 0}
+             '--save_query_names' : 0,
+             '--debug' : 0}
 
-
+# Obsolete
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
     if interval1[0] < interval2[0] - allowed_inacc:
         return False
@@ -64,6 +65,7 @@ def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEF
 
     return True
 
+# Obsolete
 def interval_overlaps(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
 
     if (interval1[1] <= interval2[0] + allowed_inacc) or (interval1[0] >= interval2[1] - allowed_inacc):
@@ -165,7 +167,7 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
 
     s_num_potential_bad_strand = 0
 
-    # allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
+    allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
     # Setting allowed inaccuracy
     allowed_inacc = 5
 
@@ -264,6 +266,8 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
         # Reading MAF file to get original position and length of the simulated read
         # Query name should be a second item
         maf_startpos = maf_length = 0
+        maf_strand = '0'
+        maf_reflen = 0
         i = 0
         with open(simMafFilePath, 'rU') as maffile:
             i += 1
@@ -274,6 +278,8 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                     if maf_qname == 'ref':              # Have to remember data for the last reference before the actual read
                         maf_startpos = int(elements[2])
                         maf_length = int(elements[3])
+                        maf_strand = elements[4]
+                        maf_reflen = int(elements[5])
                     if maf_qname == simQName:
                         # maf_startpos = int(elements[2])
                         # maf_length = int(elements[3])
@@ -284,10 +290,16 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             # pdb.set_trace()
             raise Exception('ERROR: could not find query %s in maf file %s' % (qname, simMafFileName))
 
-        # Calculating expected partial alignmetns from MAF and annotations
+        # IMPORTANT: If the reads were generated from an annotation on reverse strand
+        #            expected partial alignments must be reversed
+        if annotation.strand == Annotation_formats.GFF_STRANDRV:
+            maf_startpos = maf_reflen - maf_length - maf_startpos
 
-        # Saving "maf_length" to be able to check it later
+        # Saving "maf_length" and "maf_startpos" to be able to check it later
         t_maf_length = maf_length
+        t_maf_startpos = maf_startpos
+
+        # Calculating expected partial alignmetns from MAF and annotations
 
         # 1. Calculating the index of the first exon
         # i - the index of exon currently being considered
@@ -335,6 +347,12 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             s_maf_split_reads += 1
             isSplitRead = True
 
+        oneHit = False
+        allHits = False
+        oneEq = False
+        multiHit = False
+        good_alignment = False
+
         if RNAseqEval.getChromName(samline_list[0].rname) != RNAseqEval.getChromName(annotation.seqname):
             # import pdb
             # pdb.set_trace()
@@ -376,6 +394,12 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                     if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
                         parthitmap[i+1] += 1
 
+            # Testing the evaluation process
+            # import pdb
+            # pdb.set_trace()
+            if len(samline_list) <> len(expected_partial_alignments):
+                good_alignment = False
+
             if good_alignment:
                 s_maf_good_alignments += 1
 
@@ -401,20 +425,20 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                     s_num_badchrom_alignments += 1
 
 
-        # Analyzing parthitmap and parteqmap
-        oneHit = False
-        allHits = True
-        oneEq = False
-        multiHit = False
-        for i in xrange(numparts):
-            if parthitmap[i+1] > 0:
-                oneHit = True
-            if parthitmap[i+1] == 0:
-                allHits = False
-            if parthitmap[i+1] > 1:
-                multiHit = True
-            if parteqmap[i+1] > 0:
-                oneEq = True
+            # Analyzing parthitmap and parteqmap
+            oneHit = False
+            allHits = True
+            oneEq = False
+            multiHit = False
+            for i in xrange(numparts):
+                if parthitmap[i+1] > 0:
+                    oneHit = True
+                if parthitmap[i+1] == 0:
+                    allHits = False
+                if parthitmap[i+1] > 1:
+                    multiHit = True
+                if parteqmap[i+1] > 0:
+                    oneEq = True
 
         if oneHit:
             s_maf_hit_one_part += 1
@@ -429,6 +453,10 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             if split_qnames:
                 file_bad.write(samline_list[0].qname + '\n')
 
+            if '--debug' in paramdict:
+                import pdb
+                pdb.set_trace()
+
         if allHits:
             s_maf_hit_all_parts += 1
             if isSplitRead:
@@ -437,6 +465,12 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             # Writting qnames to files
             if split_qnames:
                 file_hitall.write(samline_list[0].qname + '\n')
+
+        # Sanity check
+        if '--debug' in paramdict and good_alignment and not allHits:
+            import pdb
+            pdb.set_trace()
+            pass
 
         if oneEq:
             s_maf_eq_one_part += 1
@@ -523,6 +557,7 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     sys.stdout.write('\nNumber of exon end hits: %d' % s_num_end_hits)
     sys.stdout.write('\nNumber of exon start and end hits: %d' % s_num_start_end_hits)
     sys.stdout.write('\nNumber of good whole alignments: %d' % s_num_good_alignments)
+    sys.stdout.write('\nNumber of alignments mapped to an incorrect chromosome: %d' % s_num_badchrom_alignments)
 
     sys.stdout.write('\nMAF: Correct alignment: %d' % s_maf_good_alignments)
     sys.stdout.write('\nMAF: Hit all parts: %d' % s_maf_hit_all_parts)
