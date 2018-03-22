@@ -50,7 +50,8 @@ paramdefs = {'--version' : 0,
              '--split-qnames' : 1,
              '-sqn' : 0,
              '--save_query_names' : 0,
-             '--debug' : 0}
+             '--debug' : 0,
+             '--print_mapping' : 1}
 
 # Obsolete
 def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
@@ -88,6 +89,11 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     filename_bad = filename + '_incorrect.names'
     filename_unmapped = filename + '_unmapped.names'
 
+    printMap = False
+    filename_mapping = paramdict['--print_mapping'][0]
+    if '--print_mapping' in paramdict:
+        printMap = True
+
     file_correct = None
     file_hitall = None
     file_hitone = None
@@ -115,6 +121,10 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     annotations = Annotation_formats.Load_Annotation_From_File(annotationfile)
 
     s_num_multiexon_genes = 0
+
+    mapfile = None
+    if printMap:
+        mapfile = open(filename_mapping, 'w+')
 
     # Hashing annotations according to name
     annotation_dict = {}
@@ -440,6 +450,29 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                 if parteqmap[i+1] > 0:
                     oneEq = True
 
+        if printMap:
+            status = 'INCORRECT'
+            if good_alignment:
+                status = 'CORRECT'
+            elif allHits:
+                status = 'HITALL'
+            elif oneHit:
+                status = 'HITONE'
+            mapfile.write('QNAME: %s, STATUS: %s\n\n' % (samline_list[0].qname, status))
+            mapfile.write('EXPECTED (%s, %s):\t' % (RNAseqEval.getChromName(annotation.seqname), annotation.strand))
+            for epa in expected_partial_alignments:
+                mapfile.write('(%d, %d)\t' % (epa[0], epa[1]))
+            mapfile.write('\n')
+            if samline_list[0].flag & 16 == 0:
+                readstrand = Annotation_formats.GFF_STRANDFW
+            else:
+                readstrand = Annotation_formats.GFF_STRANDRV
+            mapfile.write('ACTUAL   (%s, %s):\t' % (RNAseqEval.getChromName(samline_list[0].rname), readstrand))
+            for samline in samline_list:
+                mapfile.write('(%d, %d)\t' % (samline.pos, samline.pos + samline.CalcReferenceLengthFromCigar()))
+            mapfile.write('\n\n')
+
+
         if oneHit:
             s_maf_hit_one_part += 1
             if isSplitRead:
@@ -448,14 +481,20 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             # Writting qnames to files
             if split_qnames:
                 file_hitone.write(samline_list[0].qname + '\n')
+
+            if not allHits:
+                if '--debug' in paramdict:
+                    import pdb
+                    pdb.set_trace()
+
         else:
             # Writting qnames to files
             if split_qnames:
                 file_bad.write(samline_list[0].qname + '\n')
 
-            if '--debug' in paramdict:
-                import pdb
-                pdb.set_trace()
+            # if '--debug' in paramdict:
+            #     import pdb
+            #     pdb.set_trace()
 
         if allHits:
             s_maf_hit_all_parts += 1
@@ -538,6 +577,9 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             s_whole_alignment_hits += 1
         else:
             s_whole_alignment_misses += 1
+
+    if printMap:
+        mapfile.close()
 
     # Writting unmapped query names to a file, if so specified
     if split_qnames:
@@ -645,6 +687,8 @@ if __name__ == '__main__':
             sys.stderr.write('\t\t--split-qnames: while calculating the statistics also sorts query names\n')
             sys.stderr.write('\t\t                into four files - file_correct.names, file_hitall.names\n')
             sys.stderr.write('\t\t                                  file_hitone.names, file_bad.names\n')
+            sys.stderr.write('\t\t--print_mapping [filename]: Print information about actual and expected alignments\n')
+            sys.stderr.write('\t\t                into a give text file.\n')
             sys.stderr.write('\n')
             exit(1)
 

@@ -855,7 +855,6 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     sys.stderr.write('ERROR: querry/ref/pos = %s/%s/%d \n' % (samline.qname, samline.rname, samline.pos))
                     pass
 
-
             total_read_length += readlength
             total_bases_aligned += basesaligned
             if basesaligned > readlength:
@@ -1411,21 +1410,22 @@ def eval_mapping(ref_file, sam_file, paramdict):
 
     report.commandline = paramdict['command']
 
-    with open(hitone_filename, 'w+') as hitone_file:
-        hitone_file.write(report.get_hitone_names())
-        hitone_file.close()
+    if save_qnames == True:
+        with open(hitone_filename, 'w+') as hitone_file:
+            hitone_file.write(report.get_hitone_names())
+            hitone_file.close()
 
-    with open(contig_filename, 'w+') as contig_file:
-        contig_file.write(report.get_contig_names())
-        contig_file.close()
+        with open(contig_filename, 'w+') as contig_file:
+            contig_file.write(report.get_contig_names())
+            contig_file.close()
 
-    with open(incorr_filename, 'w+') as incorr_file:
-        incorr_file.write(report.get_incorr_names())
-        incorr_file.close()
+        with open(incorr_filename, 'w+') as incorr_file:
+            incorr_file.write(report.get_incorr_names())
+            incorr_file.close()
 
-    with open(unmapped_filename, 'w+') as unmapped_file:
-        unmapped_file.write(report.get_unmapped_names())
-        unmapped_file.close()
+        with open(unmapped_filename, 'w+') as unmapped_file:
+            unmapped_file.write(report.get_unmapped_names())
+            unmapped_file.close()
 
     out_file.write(report.toString())
     out_file.close()

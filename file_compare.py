@@ -56,9 +56,23 @@ def compare2files(filename1, filename2):
 
     sys.stderr.write('\nFile1 / file2 / both: %d / %d / %d\n' % (count1, count2, countboth))
 
-    # NOTE: At the moment not interested in printing the lines out
-    # for line in dictboth.iterkeys():
-    #     sys.stdout.write(line)
+    sys.stderr.write('\nWritting names for file 1 only')
+    with open('file1_only.names', 'w+') as file1:
+        for line in list1only:
+            file1.write(line)
+        file1.close()
+
+    sys.stderr.write('\nWritting names for file 2 only')
+    with open('file2_only.names', 'w+') as file2:
+        for line in list2only:
+            file2.write(line)
+        file2.close()
+
+    sys.stderr.write('\nWritting names for both files\n')
+    with open('file12_both.names', 'w+') as file_both:
+        for line in dictboth.iterkeys():
+            file_both.write(line)
+        file_both.close()
 
     # Names that occur in only one file are stored in lists and can be easily retreived andsaved to files
 
