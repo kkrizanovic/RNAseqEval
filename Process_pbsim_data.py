@@ -90,8 +90,9 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     filename_unmapped = filename + '_unmapped.names'
 
     printMap = False
-    filename_mapping = paramdict['--print_mapping'][0]
+    filename_mapping = ''
     if '--print_mapping' in paramdict:
+        filename_mapping = paramdict['--print_mapping'][0]
         printMap = True
 
     file_correct = None
@@ -175,11 +176,14 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     s_maf_split_hit_one_part = 0
     s_maf_split_eq_one_part = 0
 
+    s_maf_miss_alignment = 0
+    s_maf_too_many_alignments = 0
+
     s_num_potential_bad_strand = 0
 
     allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
     # Setting allowed inaccuracy
-    allowed_inacc = 5
+    # allowed_inacc = 25
 
     # All samlines in a list should have the same query name
     for samline_list in all_sam_lines:
@@ -321,19 +325,13 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
         # Calculating expected partial alignments by filling up exons using maf_length
         expected_partial_alignments = []
         while maf_length > 0:
-            # try:
-            #     start = annotation.items[i].start + maf_startpos
-            #     end = annotation.items[i].end
-            # except Exception:
-            #     import pdb
-            #     pdb.set_trace()
-            #if not start < end:
-            #    import pdb
-            #    pdb.set_trace()
             start = annotation.items[i].start + maf_startpos
             end = annotation.items[i].end
             assert start <= end
-            length = end-start+1
+            
+            # OLD: length = end-start+1
+            # KK: End is already indicating position after the last base, so adding one when callculating length is not correct
+            length = end - start
             if length <= maf_length:
                 expected_partial_alignments.append((start, end))
                 maf_length -= length
@@ -345,6 +343,9 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
 
             # Start position should only be considered for the first exon
             maf_startpos = 0
+
+        import pdb
+        pdb.set_trace()
 
         numparts = len(expected_partial_alignments)
         # For each part of expected partial alignments, these maps will count
@@ -362,6 +363,7 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
         oneEq = False
         multiHit = False
         good_alignment = False
+        has_miss_alignments = False
 
         if RNAseqEval.getChromName(samline_list[0].rname) != RNAseqEval.getChromName(annotation.seqname):
             # import pdb
@@ -403,6 +405,24 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                         parteqmap[i+1] += 1
                     if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
                         parthitmap[i+1] += 1
+
+            has_miss_alignments = False
+            for expected_alignement in expected_partial_alignments:
+                maf_startpos = expected_alignement[0]
+                maf_endpos = expected_alignement[1]
+                overlap = False
+                for samline in samline_list:
+                    sl_startpos = samline.pos
+                    reflength = samline.CalcReferenceLengthFromCigar()
+                    sl_endpos = sl_startpos + reflength
+                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                        overlap = True
+                if not overlap:
+                    has_miss_alignments = True
+                    break
+
+            if len(samline_list) < len(expected_partial_alignments):
+                s_maf_too_many_alignments += 1
 
             # Testing the evaluation process
             # import pdb
@@ -486,6 +506,10 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                 if '--debug' in paramdict:
                     import pdb
                     pdb.set_trace()
+
+            # Misses are calculated only for alignments that have at least one hit
+            if has_miss_alignments:
+                s_maf_miss_alignment += 1
 
         else:
             # Writting qnames to files
@@ -611,6 +635,10 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     sys.stdout.write('\nMAF: Hit all parts, SPLIT read: %d' % s_maf_split_hit_all_parts)
     sys.stdout.write('\nMAF: Hit at least one part, SPLIT read: %d' % s_maf_split_hit_one_part)
     sys.stdout.write('\nMAF: Equals at least one part, SPLIT read: %d' % s_maf_split_eq_one_part)
+
+    sys.stdout.write('\nMAF: Partial alignment that misses: %d' % s_maf_miss_alignment)
+    sys.stdout.write('\nMAF: More alignments than expected: %d' % s_maf_too_many_alignments)
+    sys.stdout.write('\nMAF: Multihit parts (fragmented) alignments: %d' % s_maf_multihit_parts)
 
     sys.stdout.write('\nDone!\n')
 
