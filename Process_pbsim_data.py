@@ -344,8 +344,8 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
             # Start position should only be considered for the first exon
             maf_startpos = 0
 
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
 
         numparts = len(expected_partial_alignments)
         # For each part of expected partial alignments, these maps will count
