@@ -51,10 +51,14 @@ paramdefs = {'--version' : 0,
              '-sqn' : 0,
              '--save_query_names' : 0,
              '--debug' : 0,
-             '--print_mapping' : 1}
+             '--print_mapping' : 1,
+             '--alowed_inaccurycy' : 1,
+             '-ai' : 1,
+             '--min_overlap' : 1,
+             '-mo' : 1}
 
 # Obsolete
-def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
+def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY, min_overlap = Annotation_formats.DEFAULT_MINIMUM_OVERLAP):
     if interval1[0] < interval2[0] - allowed_inacc:
         return False
     if interval1[0] > interval2[0] + allowed_inacc:
@@ -67,9 +71,9 @@ def interval_equals(interval1, interval2, allowed_inacc = Annotation_formats.DEF
     return True
 
 # Obsolete
-def interval_overlaps(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY):
+def interval_overlaps(interval1, interval2, allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY, min_overlap = Annotation_formats.DEFAULT_MINIMUM_OVERLAP):
 
-    if (interval1[1] <= interval2[0] + allowed_inacc) or (interval1[0] >= interval2[1] - allowed_inacc):
+    if (interval1[1] <= interval2[0] + min_overlap) or (interval1[0] >= interval2[1] - min_overlap):
         return False
     else:
         return True
@@ -182,8 +186,19 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
     s_num_potential_bad_strand = 0
 
     allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
-    # Setting allowed inaccuracy
-    # allowed_inacc = 25
+    min_overlap = Annotation_formats.DEFAULT_MINIMUM_OVERLAP       		# Minimum overlap that is considered
+
+    # Setting allowed_inaccuracy from parameters
+    if '--allowed_inacc' in paramdict:
+        allowed_inacc = int(paramdict['--allowed_inacc'][0])
+    elif '-ai' in paramdict:
+        allowed_inacc = int(paramdict['-ai'][0])
+
+    # Setting minimum overlap from parameters
+    if '--allowed_inacc' in paramdict:
+        min_overlap = int(paramdict['--allowed_inacc'][0])
+    elif '-mo' in paramdict:
+        min_overlap = int(paramdict['-mo'][0])
 
     # All samlines in a list should have the same query name
     for samline_list in all_sam_lines:
@@ -401,9 +416,9 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                     maf_startpos = expected_alignement[0]
                     maf_endpos = expected_alignement[1]
 
-                    if interval_equals((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                    if interval_equals((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc, min_overlap):
                         parteqmap[i+1] += 1
-                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc, min_overlap):
                         parthitmap[i+1] += 1
 
             has_miss_alignments = False
@@ -415,7 +430,7 @@ def processData(datafolder, resultfile, annotationfile, paramdict):
                     sl_startpos = samline.pos
                     reflength = samline.CalcReferenceLengthFromCigar()
                     sl_endpos = sl_startpos + reflength
-                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc):
+                    if interval_overlaps((sl_startpos, sl_endpos), (maf_startpos, maf_endpos), allowed_inacc, min_overlap):
                         overlap = True
                 if not overlap:
                     has_miss_alignments = True

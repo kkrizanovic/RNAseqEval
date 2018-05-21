@@ -43,7 +43,11 @@ paramdefs = {'-a' : 1,
              '--no_check_strand' : 0,
              '--no_per_base_stats' : 0,
              '-sqn' : 0,
-             '--save_query_names' : 0}
+             '--save_query_names' : 0,
+             '--alowed_inaccurycy' : 1,
+             '-ai' : 1,
+             '--min_overlap' : 1,
+             '-mo' : 1}
 
 
 def cleanup():
@@ -427,6 +431,21 @@ def load_and_process_annotations(annotations_file, paramdict, report):
 # This function is called inside a separate process
 def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, out_q):
 
+    allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
+    min_overlap = Annotation_formats.DEFAULT_MINIMUM_OVERLAP            # Minimum overlap that is considered
+
+    # Setting allowed_inaccuracy from parameters
+    if '--allowed_inacc' in paramdict:
+        allowed_inacc = int(paramdict['--allowed_inacc'][0])
+    elif '-ai' in paramdict:
+        allowed_inacc = int(paramdict['-ai'][0])
+
+    # Setting minimum overlap from parameters
+    if '--allowed_inacc' in paramdict:
+        min_overlap = int(paramdict['--allowed_inacc'][0])
+    elif '-mo' in paramdict:
+        min_overlap = int(paramdict['-mo'][0])
+
     sys.stdout.write('\nStarting process %d...\n' % proc_id)
 
     expressed_genes = {}
@@ -448,6 +467,8 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
     save_qnames = False
     if '-sqn' in paramdict or '--save_query_names' in paramdict:
         save_qnames = True
+
+    num_hithalfbases = 0
 
     for samline_list in samlines:
         # Initializing information for a single read
@@ -567,6 +588,13 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                 badsplit = True
                 # sys.stderr.write('\nWARNING: Bad split alignment with more parts then annotation has exons!\n')
 
+            # Checking if the alignment covering annotations encompasses at least half the read
+            # max_score represents the number of bases of the read that are aligned within the candidate annotation
+            readlength = samline_list[0].CalcReadLengthFromCigar()
+            # sys.stderr.write('\nINFO: Maxscore = %d, readlength = %d' % (max_score, readlength))
+            if max_score > (readlength / 2):
+                num_hithalfbases += 1
+
             # Updating gene expression
             # Since all initial values for expression and coverage are zero, this could all probably default to case one
             if annotation.genename in expressed_genes.keys():
@@ -663,6 +691,8 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
             if isSpliced:
                 report.num_possible_spliced_alignment += 1
+
+        report.num_halfbases_hit = num_hithalfbases
 
         if isGood:
             report.num_good_alignment += 1
@@ -790,11 +820,11 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     numMisMatch = 0
     numInsert = 0
     numDelete = 0
+    numLowMatchCnt = 0
 
     total_read_length = 0
     total_bases_aligned = 0
     percentage_bases_aligned = 0.0
-
 
     # Setting up some sort of a progress bar
     if per_base_stats == True:
@@ -810,6 +840,13 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
             if float(progress)/numsamlines >= currentbar:
                 sys.stderr.write('* ')
                 currentbar += 0.1
+            
+            # For checking cigar strings
+            t_numMatch = 0
+            t_numInsert = 0
+            t_numDelete = 0
+            t_numMisMatch = 0
+
             # Calculate readlength from the first alignment (should be the same)
             # and then see how many of those bases were actually aligned
             readlength = samline_list[0].CalcReadLengthFromCigar()
@@ -836,13 +873,17 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     for op in operations:
                         if op[1] in ('M', '='):
                             numMatch += int(op[0])
+                            t_numMatch += int(op[0])
                             basesaligned += int(op[0])
                         elif op[1] == 'I':
+                            t_numInsert += int(op[0])
                             numInsert += int(op[0])
                             basesaligned += int(op[0])
                         elif op[1] == 'D':
+                            t_numDelete += int(op[0])
                             numDelete += int(op[0])
                         elif op[1] =='X':
+                            t_numMisMatch += int(op[0])
                             numMisMatch += int(op[0])
                             basesaligned += int(op[0])
                         elif op[1] in ('N', 'S', 'H', 'P'):
@@ -854,6 +895,16 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     # pdb.set_trace()
                     sys.stderr.write('ERROR: querry/ref/pos = %s/%s/%d \n' % (samline.qname, samline.rname, samline.pos))
                     pass
+
+            # Checking CIGAR strings for low match reads
+            if (t_numMatch < t_numMisMatch + t_numInsert + t_numDelete):
+                strand = '+'
+                if samline_list[0].flag & 16 != 0:
+                    strand = '-'
+                numLowMatchCnt += 1
+                # sys.stderr.write('\nDEBUG: strand / match / mismatch / insert / delete: %c / %d / %d / %d / %d' % (strand, t_numMatch, t_numMisMatch, t_numInsert, t_numDelete))
+                # import pdb
+                # pdb.set_trace()
 
             total_read_length += readlength
             total_bases_aligned += basesaligned
@@ -989,8 +1040,11 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         report.num_exon_hit += t_report.num_exon_hit
         report.num_exon_partial += t_report.num_exon_partial
         report.num_exon_miss += t_report.num_exon_miss
+        report.num_halfbases_hit += t_report.num_halfbases_hit
+        report.num_lowmatchcnt = t_report.num_lowmatchcnt
         report.num_inside_miss_alignments += t_report.num_inside_miss_alignments
         report.hitone_names += t_report.hitone_names
+        report.hithalfbases_names += t_report.hithalfbases_names
         report.contig_names += t_report.contig_names
         report.incorr_names += t_report.incorr_names
         report.unmapped_names += t_report.unmapped_names
@@ -1253,6 +1307,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
     total = numMatch + numMisMatch + numInsert + numDelete
 
+    report.num_lowmatchcnt = numLowMatchCnt
+
     if total > 0:
         report.match_percentage = float(report.num_match)/total
         report.mismatch_percentage = float(report.num_mismatch)/total
@@ -1373,6 +1429,7 @@ def eval_mapping(ref_file, sam_file, paramdict):
 
     out_filename = ''
     hitone_filename = ''
+    hithalfbases_filename = ''
     contig_filename = ''
     incorr_filename = ''
     unmapped_filename = ''
@@ -1392,6 +1449,7 @@ def eval_mapping(ref_file, sam_file, paramdict):
 
     if save_qnames == True:
         hitone_filename = out_filename + '_hit1.names'
+        hithalfbases_filename = out_filename + '_hithalfbases.names'
         contig_filename = out_filename + '_ctg.names'
         incorr_filename = out_filename + '_bad.names'
         unmapped_filename = out_filename + '_unmmapped.names'
@@ -1414,6 +1472,10 @@ def eval_mapping(ref_file, sam_file, paramdict):
         with open(hitone_filename, 'w+') as hitone_file:
             hitone_file.write(report.get_hitone_names())
             hitone_file.close()
+
+        with open(hithalfbases_filename, 'w+') as hithalf_file:
+            hithalf_file.write(report.get_hithalfbases_names())
+            hithalf_file.close()
 
         with open(contig_filename, 'w+') as contig_file:
             contig_file.write(report.get_contig_names())
@@ -1678,6 +1740,10 @@ if __name__ == '__main__':
             sys.stderr.write('                            and for contiguous alignments. Query names are saved to files\n')
             sys.stderr.write('                            with filenames determined from output file. \n')
             sys.stderr.write('                            For this option output and annotation files must be specified\n')
+            sys.stderr.write('-ai (--alowed_inaccuracy) : A maximumn distance in bases between an annotation and an alignment\n')
+            sys.stderr.write('                            where the alignment is still considered correct (default 5)\n')
+            sys.stderr.write('-mo (--min_overlap) : A minimum overlap between an annotation and an alignment that is considered valid\n')
+            sys.stderr.write('                      (default 5)\n')
             sys.stderr.write('\n')
             exit(1)
 

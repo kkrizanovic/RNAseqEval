@@ -94,6 +94,11 @@ class EvalReport:
         self.num_exon_hit = 0
         self.num_exon_partial = 0
         self.num_exon_miss = 0
+        self.num_halfbases_hit = 0          # The number of reads whose alignment falling within an annotation
+                                            # covers at least half of the bases of the read
+
+        self.num_lowmatchcnt = 0            # The number of reads with a very low match count from extended CIGAR
+                                            # the number of matches is lower then the number of matches, inserts and deletes 
 
 
         self.num_multi_exon_alignments = 0      # alignments spanning multiple exons / this can be correct
@@ -157,6 +162,7 @@ class EvalReport:
         # - qnames that have contiguous alignment
         # - qames that have incorrect alignment
         self.hitone_names = []
+        self.hithalfbases_names = []
         self.contig_names = []
         self.incorr_names = []
         self.unmapped_names = []
@@ -176,6 +182,12 @@ class EvalReport:
         for name in self.hitone_names:
             report += name + '\n'
         return report
+
+    def get_hithalfbases_names(self):
+        report = ''
+        for name in self.hithalfbases_names:
+            report += name + '\n'
+        return report    
 
     def get_contig_names(self):
         report = ''
@@ -268,6 +280,8 @@ class EvalReport:
             Exons covered / missed / total = %d / %d / %d
             Alignments on transcript hit / missed = %d / %d
             Alignments on exons hit / missed = %d / %d
+            Alignments for reads where more than 50%% bases falls within an annotation = %d
+            Alignments with low match count (lower than mismatch, insert and delete combined) = %d
             Alignments hitting an exon (start / end / both) = %d / %d / %d
             Contiguous / non contiguous alignments: %d (%.2f%%) / %d (%.2f%%)
             """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
@@ -275,6 +289,8 @@ class EvalReport:
                    self.num_exons_covered, self.num_exons - self.num_exons_covered, self.num_exons, \
                    self.num_hit_alignments, self.num_missed_alignments, \
                    self.num_exon_hit, self.num_exon_miss, \
+                   self.num_halfbases_hit, \
+                   self.num_lowmatchcnt, \
                    self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
                    self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent)
 
