@@ -99,6 +99,11 @@ class EvalReport:
 
         self.num_lowmatchcnt = 0            # The number of reads with a very low match count from extended CIGAR
                                             # the number of matches is lower then the number of matches, inserts and deletes 
+        self.num_partial_exon_miss = 0      # Then number of alignments that have a disjoined part completely missing an exon
+                                            # This disjoined part (partial alignment) needs to be greater than allowed_inaccuracy 
+                                            # To be considered
+        self.num_almost_good = 0            # The number of alignments that would be contiguous, but have at least one partial alignment
+                                            # that missses all exons
 
 
         self.num_multi_exon_alignments = 0      # alignments spanning multiple exons / this can be correct
@@ -283,6 +288,7 @@ class EvalReport:
             Alignments for reads where more than 50%% bases falls within an annotation = %d
             Alignments with low match count (lower than mismatch, insert and delete combined) = %d
             Alignments hitting an exon (start / end / both) = %d / %d / %d
+            Alignments with a partial miss (not good / "almost "good) = %d / %d
             Contiguous / non contiguous alignments: %d (%.2f%%) / %d (%.2f%%)
             """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
                    self.num_genes_covered, self.num_genes - self.num_genes_covered, self.num_genes, \
@@ -292,6 +298,7 @@ class EvalReport:
                    self.num_halfbases_hit, \
                    self.num_lowmatchcnt, \
                    self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
+                   self.num_partial_exon_miss, self.num_almost_good, \
                    self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent)
 
             # Counting the number of expressed genes

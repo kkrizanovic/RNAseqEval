@@ -481,6 +481,9 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         exon_cnt = 0        # counting exons spanned by an alignement
         gene_cnt = 0        # counting genes spanned by an alignement
         num_alignments = len(samline_list)
+        num_misses = 0
+        isAlmostGood = False
+        max_score = 0
         if num_alignments > 1:
             split = True
         else:
@@ -610,7 +613,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                 partial = True
 
             # Initialize exon hit map and exon complete map (also start and end map)
-            # Both have one entery for each exon
+            # Both have one entry for each exon
             # Hit map collects how many times has each exon been hit by an alignment (it should be one or zero)
             # Complete map collects which exons have been completely covered by an alignement
             # Start map collects which exons are correctly started by an alignment (have the same starting position)
@@ -620,14 +623,18 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             exoncompletemap = {(i+1):0 for i in xrange(len(annotation.items))}
             exonstartmap = {(i+1):0 for i in xrange(len(annotation.items))}
             exonendmap = {(i+1):0 for i in xrange(len(annotation.items))}
+            num_misses = 0      # The number of partial alignments that do not overlap any exons
+                                # Partial alignments that are smaller than allowed_inaccuracy, are not counted
             for samline in samline_list:
                 item_idx = 0
                 lstartpos = samline.pos
                 reflength = samline.CalcReferenceLengthFromCigar()
                 lendpos = lstartpos + reflength
+                exonhit = False
                 for item in annotation.items:
                     item_idx += 1
                     if item.overlapsItem(lstartpos, lendpos):
+                        exonhit = True
                         exonhitmap[item_idx] += 1
                         if item.equalsItem(lstartpos, lendpos):
                             exoncompletemap[item_idx] = 1
@@ -647,6 +654,13 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                             exonPartial = False
                         else:
                             exonPartial = True
+
+                # Checking if a partial alignment hit any exons
+                if exonhit == False and reflength > allowed_inacc:
+                    num_misses += 1
+                    # KK: Doesn't work within a separate process
+                    # import pdb
+                    # pdb.set_trace()
 
                 # TODO: What to do if an exon is partially hit?
                 # NOTE: Due to information in hit map and complete map
@@ -683,6 +697,13 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
             isGood, isSpliced = isGoodSplitAlignment(exonhitmap, exoncompletemap, exonstartmap, exonendmap)
 
+            # KK: This should probably be included in the isGoodSplitAlignment function
+            isAlmostGood = False
+            if num_misses > 0:
+                if isGood == True:
+                    isAlmostGood = True
+                isGood = False
+
         else:
             # No matching annotations were found
             # TODO: Check if anything needs to be done here
@@ -694,11 +715,17 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
         report.num_halfbases_hit = num_hithalfbases
 
+        if num_misses > 0:
+            report.num_partial_exon_miss += 1
+
         if isGood:
             report.num_good_alignment += 1
             report.contig_names.append(samline_list[0].qname)
         else:
             report.num_bad_alignment += 1
+
+        if isAlmostGood:
+            report.num_almost_good += 1
 
         if exon_cnt > 1:
             report.num_multi_exon_alignments += 1
@@ -890,10 +917,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                             pass
                         else:
                             sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
-                except Exception:
+                except Exception, Argument:
                     # import pdb
                     # pdb.set_trace()
-                    sys.stderr.write('ERROR: querry/ref/pos = %s/%s/%d \n' % (samline.qname, samline.rname, samline.pos))
+                    sys.stderr.write('ERROR: querry/ref/pos/message = %s/%s/%d/%s \n' % (samline.qname, samline.rname, samline.pos, message))
                     pass
 
             # Checking CIGAR strings for low match reads
@@ -903,6 +930,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     strand = '-'
                 numLowMatchCnt += 1
                 # sys.stderr.write('\nDEBUG: strand / match / mismatch / insert / delete: %c / %d / %d / %d / %d' % (strand, t_numMatch, t_numMisMatch, t_numInsert, t_numDelete))
+                import pdb
+                pdb.set_trace()
+            else:
+                pass
                 # import pdb
                 # pdb.set_trace()
 
@@ -1043,6 +1074,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         report.num_halfbases_hit += t_report.num_halfbases_hit
         report.num_lowmatchcnt = t_report.num_lowmatchcnt
         report.num_inside_miss_alignments += t_report.num_inside_miss_alignments
+        report.num_partial_exon_miss += t_report.num_partial_exon_miss
+        report.num_almost_good += t_report.num_almost_good
         report.hitone_names += t_report.hitone_names
         report.hithalfbases_names += t_report.hithalfbases_names
         report.contig_names += t_report.contig_names
