@@ -47,7 +47,8 @@ paramdefs = {'-a' : 1,
              '--alowed_inaccurycy' : 1,
              '-ai' : 1,
              '--min_overlap' : 1,
-             '-mo' : 1}
+             '-mo' : 1,
+             '--graphmap' : 0}
 
 
 def cleanup():
@@ -805,6 +806,11 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     if '-sqn' in paramdict or '--save_query_names' in paramdict:
         save_qnames = True
 
+    correct_gm = False
+    if '--graphmap' in paramdict:
+        sys.stderr.write('\n(%s) Using option --graphmap ... ' % datetime.now().time().isoformat())        
+        correct_gm = True    
+
     sys.stderr.write('\n(%s) Loading and processing FASTA reference ... ' % datetime.now().time().isoformat())
     [chromname2seq, headers, seqs, quals] = load_and_process_reference(ref_file, paramdict, report)
 
@@ -888,6 +894,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
                 # Testing code
                 try:
+                    if correct_gm == True and samline.flag & 16 != 0:
+                        samline.pos += 1
                     cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
                     pos = samline.pos
                     quals = samline.qual
@@ -930,8 +938,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                     strand = '-'
                 numLowMatchCnt += 1
                 # sys.stderr.write('\nDEBUG: strand / match / mismatch / insert / delete: %c / %d / %d / %d / %d' % (strand, t_numMatch, t_numMisMatch, t_numInsert, t_numDelete))
-                import pdb
-                pdb.set_trace()
+                # import pdb
+                # pdb.set_trace()
             else:
                 pass
                 # import pdb
@@ -1777,6 +1785,8 @@ if __name__ == '__main__':
             sys.stderr.write('                            where the alignment is still considered correct (default 5)\n')
             sys.stderr.write('-mo (--min_overlap) : A minimum overlap between an annotation and an alignment that is considered valid\n')
             sys.stderr.write('                      (default 5)\n')
+            sys.stderr.write('--graphmap : correct for a bug in GraphMap RNA mapping on reverse strand\n')
+            sys.stderr.write('              taken into account only when calculating the percentage of matches\n')
             sys.stderr.write('\n')
             exit(1)
 
