@@ -107,6 +107,7 @@ class GeneItem:
         return count
 
 
+
 class GeneDescription:
     def __init__(self):
         self.seqname = ''

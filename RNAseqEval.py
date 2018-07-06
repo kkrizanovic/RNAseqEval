@@ -572,8 +572,13 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                     start = samline.pos
                     reflength = samline.CalcReferenceLengthFromCigar()
                     end = start + reflength
+                    slBasesInside = 0
                     for item in cannotation.items:
-                        score += item.basesInside(start, end)
+                        bases = item.basesInside(start, end)
+                        score += bases
+                        slBasesInside += bases
+                    # KK: Punishing bases outside the gene item
+                    score -= reflength - slBasesInside
 
                 if score > max_score:
                     max_score = score
@@ -822,6 +827,9 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
     numq = 0
     sumq = 0.0
+
+    # The number of alignments (alignment group) after preprocessing
+    report.num_evaluated_alignments = len(samlines)
 
     sys.stderr.write('\n(%s) Analyzing mappings against annotations ... ' % datetime.now().time().isoformat())
     # Looking at SAM lines to estimate general mapping quality

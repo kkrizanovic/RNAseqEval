@@ -172,6 +172,9 @@ class EvalReport:
         self.incorr_names = []
         self.unmapped_names = []
 
+        # Number of alignments after preprocessing - the number of alignments which are evaluated
+        self.num_evaluated_alignments = 0
+
 
     def chromosomes(self):
         output = '\t\t'
@@ -283,6 +286,7 @@ class EvalReport:
             Bases in reads (aligned / total) (percent) = (%d / %d) (%.2f%%)
             Transcripts covered / missed / total = %d / %d / %d
             Exons covered / missed / total = %d / %d / %d
+            Total number of evaluated alignments = %d
             Alignments on transcript hit / missed = %d / %d
             Alignments on exons hit / missed = %d / %d
             Alignments for reads where more than 50%% bases falls within an annotation = %d
@@ -293,6 +297,7 @@ class EvalReport:
             """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
                    self.num_genes_covered, self.num_genes - self.num_genes_covered, self.num_genes, \
                    self.num_exons_covered, self.num_exons - self.num_exons_covered, self.num_exons, \
+                   self.num_evaluated_alignments, \
                    self.num_hit_alignments, self.num_missed_alignments, \
                    self.num_exon_hit, self.num_exon_miss, \
                    self.num_halfbases_hit, \
