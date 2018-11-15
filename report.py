@@ -134,6 +134,10 @@ class EvalReport:
         self.num_overcover_alignments = 0
         self.num_possible_spliced_alignment = 0     # A number of alignments that are possibly spliced
                                                     # I.e. skipping an one or more exons between two covered exons
+        self.num_hit_all = 0				# A number of alignemnts that hit a series of exons without skipping any
+        									# Each exon does not need to be covered correctly, only "hit"
+        									# Should be fairly similar to Hit_all statistics for simulated reads
+        self.hit_all_percent = 0.0
 
         # TODO: Some statistics about a precision of start and end exon points
         self.num_good_starts = 0
@@ -294,6 +298,7 @@ class EvalReport:
             Alignments hitting an exon (start / end / both) = %d / %d / %d
             Alignments with a partial miss (not good / "almost "good) = %d / %d
             Contiguous / non contiguous alignments: %d (%.2f%%) / %d (%.2f%%)
+            Hit all for real reads: %d (%.2f%%)
             """ % (self.sum_bases_aligned, self.sum_read_length, self.percentage_bases_aligned, \
                    self.num_genes_covered, self.num_genes - self.num_genes_covered, self.num_genes, \
                    self.num_exons_covered, self.num_exons - self.num_exons_covered, self.num_exons, \
@@ -304,7 +309,8 @@ class EvalReport:
                    self.num_lowmatchcnt, \
                    self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
                    self.num_partial_exon_miss, self.num_almost_good, \
-                   self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent)
+                   self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent, \
+            	   self.num_hit_all, self.hit_all_percent)
 
             # Counting the number of expressed genes
             # This has already been written in the report, but this was the value can be double checked

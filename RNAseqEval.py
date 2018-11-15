@@ -727,6 +727,8 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         if isGood:
             report.num_good_alignment += 1
             report.contig_names.append(samline_list[0].qname)
+            if isSpliced:
+            	report.num_hit_all += 1
         else:
             report.num_bad_alignment += 1
 
@@ -1092,6 +1094,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         report.num_inside_miss_alignments += t_report.num_inside_miss_alignments
         report.num_partial_exon_miss += t_report.num_partial_exon_miss
         report.num_almost_good += t_report.num_almost_good
+        report.num_hit_all += t_report.num_hit_all
         report.hitone_names += t_report.hitone_names
         report.hithalfbases_names += t_report.hithalfbases_names
         report.contig_names += t_report.contig_names
@@ -1334,6 +1337,8 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     # KK: +1s are for testing to avoid division by zero
     report.good_alignment_percent = 100.0 * float(report.num_good_alignment)/(report.num_good_alignment + report.num_bad_alignment + 1)
     report.bad_alignment_percent = 100.0 * float(report.num_bad_alignment)/(report.num_good_alignment + report.num_bad_alignment + 1)
+    report.hit_all_percent = 100.0 * float(report.num_hit_all)/(report.num_good_alignment + report.num_bad_alignment + 1)
+
 
     # How many genes were covered by alignments
     report.num_genes_covered = 0
