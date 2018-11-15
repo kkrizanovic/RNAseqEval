@@ -48,7 +48,8 @@ paramdefs = {'-a' : 1,
              '-ai' : 1,
              '--min_overlap' : 1,
              '-mo' : 1,
-             '--graphmap' : 0}
+             '--graphmap' : 0,
+             '--old_bma_calc' : 0}
 
 
 def cleanup():
@@ -469,6 +470,10 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
     if '-sqn' in paramdict or '--save_query_names' in paramdict:
         save_qnames = True
 
+    old_bma_calc = False
+    if '--old_bma_calc' in paramdict:
+        old_bma_calc = True
+
     num_hithalfbases = 0
 
     for samline_list in samlines:
@@ -560,29 +565,51 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                 candidate_annotations.append(annotation)
 
         if len(candidate_annotations) > 1:
-            # Find the best matching candidate
-            max_score = 0
-            for cannotation in candidate_annotations:
-                if cannotation.genename not in genescovered:
-                    genescovered.append(cannotation.genename)
-                    gene_cnt += 1
+            # Find the best matching candidate            
+            if old_bma_calc == False:
+                max_score = 0
+                for cannotation in candidate_annotations:
+                    if cannotation.genename not in genescovered:
+                        genescovered.append(cannotation.genename)
+                        gene_cnt += 1
 
-                score = 0
-                for samline in samline_list:
-                    start = samline.pos
-                    reflength = samline.CalcReferenceLengthFromCigar()
-                    end = start + reflength
-                    slBasesInside = 0
-                    for item in cannotation.items:
-                        bases = item.basesInside(start, end)
-                        score += bases
-                        slBasesInside += bases
-                    # KK: Punishing bases outside the gene item
-                    score -= reflength - slBasesInside
+                    score = 0
+                    for samline in samline_list:
+                        start = samline.pos
+                        reflength = samline.CalcReferenceLengthFromCigar()
+                        end = start + reflength
+                        slBasesInside = 0
+                        for item in cannotation.items:
+                            bases = item.basesInside(start, end)
+                            score += bases
+                            slBasesInside += bases
+                        # KK: Punishing bases outside the gene item
+                        score -= reflength - slBasesInside
 
-                if score > max_score:
-                    max_score = score
-                    best_match_annotation = cannotation
+                    if score > max_score:
+                        max_score = score
+                        best_match_annotation = cannotation
+
+            # Calculating the best matching candidate annotation the old way, not punishing the bases aligned outside the annotation
+            else:
+                max_score = 0
+                for cannotation in candidate_annotations:
+                    if cannotation.genename not in genescovered:
+                        genescovered.append(cannotation.genename)
+                        gene_cnt += 1
+
+                    score = 0
+                    for samline in samline_list:
+                        start = samline.pos
+                        reflength = samline.CalcReferenceLengthFromCigar()
+                        end = start + reflength
+                        for item in cannotation.items:
+                            bases = item.basesInside(start, end)
+                            score += bases
+
+                    if score > max_score:
+                        max_score = score
+                        best_match_annotation = cannotation
 
         elif len(candidate_annotations) == 1:
             best_match_annotation = candidate_annotations[0]
@@ -1795,6 +1822,8 @@ if __name__ == '__main__':
             sys.stderr.write('                      (default 5)\n')
             sys.stderr.write('--graphmap : correct for a bug in GraphMap RNA mapping on reverse strand\n')
             sys.stderr.write('              taken into account only when calculating the percentage of matches\n')
+            sys.stderr.write('--old_bma_calc : Calculate best matching annotation only based on maximizing the number of bases an alignment\n')
+            sys.stderr.write('                 on an annotation. The number of bases outside an annotation is not take into account in this case\n')
             sys.stderr.write('\n')
             exit(1)
 
