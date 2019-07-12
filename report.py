@@ -134,9 +134,9 @@ class EvalReport:
         self.num_overcover_alignments = 0
         self.num_possible_spliced_alignment = 0     # A number of alignments that are possibly spliced
                                                     # I.e. skipping an one or more exons between two covered exons
-        self.num_hit_all = 0				# A number of alignemnts that hit a series of exons without skipping any
-        									# Each exon does not need to be covered correctly, only "hit"
-        									# Should be fairly similar to Hit_all statistics for simulated reads
+        self.num_hit_all = 0                # A number of alignemnts that hit a series of exons without skipping any
+                                            # Each exon does not need to be covered correctly, only "hit"
+                                            # Should be fairly similar to Hit_all statistics for simulated reads
         self.hit_all_percent = 0.0
 
         # TODO: Some statistics about a precision of start and end exon points
@@ -179,6 +179,12 @@ class EvalReport:
         # Number of alignments after preprocessing - the number of alignments which are evaluated
         self.num_evaluated_alignments = 0
 
+        # Potential new annotations
+        self.pot_new_annotations = []
+        self.alignments_with_pna = 0
+        self.detect_new_annotations = False
+        self.cna_count = {}
+        self.cna_readlist = {}
 
     def chromosomes(self):
         output = '\t\t'
@@ -217,6 +223,26 @@ class EvalReport:
         report = ''
         for name in self.unmapped_names:
             report += name + '\n'
+        return report
+
+    def getAnnotationReport(self):
+        report = ''
+        try:
+            for pna in self.pot_new_annotations:
+                name = pna.genename
+                reportline = "\nName: %s\nBased on:%s\nStrand: %s\nNumber of reads: %d\n" % (pna.genename, pna.source, pna.strand, self.cna_count[name])
+                reportline += "Reads:\n"
+                for rname in self.cna_readlist[name]:
+                    reportline += "\n" + rname
+                reportline += "Items:\n"
+                for item in pna.items:
+                    reportline += " [%d, %d]" % (item.start, item.end)
+                reportline += "\n"
+                report += reportline
+        except Exception:
+            import pdb
+            pdb.set_trace()
+
         return report
 
     # New toString function for printing out reports
@@ -310,10 +336,10 @@ class EvalReport:
                    self.num_good_starts, self.num_good_ends, self.num_equal_exons, \
                    self.num_partial_exon_miss, self.num_almost_good, \
                    self.num_good_alignment, self.good_alignment_percent, self.num_bad_alignment, self.bad_alignment_percent, \
-            	   self.num_hit_all, self.hit_all_percent)
+                   self.num_hit_all, self.hit_all_percent)
 
             # Counting the number of expressed genes
-            # This has already been written in the report, but this was the value can be double checked
+            # This has already been written in the report, but this way the value can be double checked
             exp_gn_cnt = 0
             for expression in self.expressed_genes.values():
                 if expression[0] > 0:
@@ -328,7 +354,8 @@ class EvalReport:
                 """ % exp_gn_cnt
 
                 if len(self.expressed_genes) != len(self.gene_coverage):
-                    raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' % (len(expressed_genes), len(gene_coverage)))
+                    raise Exception('ERROR: Gene expression and gene coverage dictionaries do not match in length! (%d <> %d)' \
+                                  % (len(self.expressed_genes), len(self.gene_coverage)))
 
                 for genename in self.expressed_genes.keys():
                     numexons = len(self.expressed_genes[genename]) - 1
@@ -342,6 +369,18 @@ class EvalReport:
                             reportline += '  (%d / %d)' % (exonhits, exon_cov_bs)
 
                         report += reportline + '\n'
+
+            if self.detect_new_annotations:
+                if len(self.pot_new_annotations) > 0:
+                    report += """\n
+                    Found %d potential new annotations with %d alignments
+                    """ % (len(self.pot_new_annotations), self.alignments_with_pna)
+                else:
+                    report += """\n
+                    Found NO potential new annotations:
+                    """
+
+                report += """\nDetailed report on annotations can be found in an '_annotations.report' file.\n"""
 
             return report + '\n'
         elif self.rtype == ReportType.ANNOTATION_REPORT:
@@ -579,4 +618,4 @@ class EvalReport:
 
 
 if __name__ == "__main__":
-	pass;
+    pass;

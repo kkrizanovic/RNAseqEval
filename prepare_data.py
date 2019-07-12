@@ -7,6 +7,7 @@
 
 import sys, os
 import random
+import re
 
 # To enable importing from samscripts submodule
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -285,6 +286,24 @@ def prepare_human_annotations(annotations_file):
                 pafile.write(line)
 
 
+# Prepare genome annotations for homo sapiens
+# Using only annotations for chromosome 19 Primary assembly
+def prepare_human_annotations_all(annotations_file):
+    filename, file_extension = os.path.splitext(annotations_file)
+    processed_annotations_file = filename + '_P2' + file_extension
+
+    pattern1 = r'(chr)(\d*)'
+    pattern2 = r'(chr)(\w*)'
+    with open(processed_annotations_file, 'w') as pafile, open(annotations_file, 'r') as afile:
+        for line in afile:
+            goodLine = True
+            match1 = re.search(pattern1, line)
+            match2 = re.search(pattern2, line)
+
+            if goodLine and match1 and match2:
+                if match1.group(0) == match2.group(0):
+                    pafile.write(line)
+
 
 def split_alternate(annotations_file):
 
@@ -485,6 +504,7 @@ def verbose_usage_and_exit():
     sys.stderr.write('\t\tdm-annotations - Process D-Melanogaster annotations\n')
     sys.stderr.write('\t\th-genome - Process human genome\n')
     sys.stderr.write('\t\th-annotations - Process human annotations\n')
+    sys.stderr.write('\t\th-annotations-all - Process human annotations - ALL\n')
     sys.stderr.write('\t\tsplit-alternate - Split transcriptome into transcripts with only one splicing\n')
     sys.stderr.write('\t\t                  and transcripts with alternate splicings.\n')
     sys.stderr.write('\t\t                  Keep only a given number of alternate splicings.\n')
@@ -528,6 +548,10 @@ if __name__ == '__main__':
     elif (mode == 'h-annotations'):
         annotations_file = sys.argv[2]
         prepare_human_annotations(annotations_file)
+
+    elif (mode == 'h-annotations-all'):
+        annotations_file = sys.argv[2]
+        prepare_human_annotations_all(annotations_file)
 
     elif (mode == 'split-alternate'):
         annotations_file = sys.argv[2]

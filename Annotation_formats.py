@@ -188,6 +188,22 @@ class GeneDescription:
                 if item.end > self.end:
                     self.end = item.end
 
+    # Check if annotation items are equal to another annotation
+    def itemsEqual(self, otherGS):
+        items1 = sorted(self.items, key = lambda it: it.start)
+        items2 = sorted(otherGS.items, key = lambda it: it.start)
+
+        if len(items1) != len(items2):
+            return False
+
+        for i in xrange(len(items1)):
+            item1 = items1[i]
+            item2 = items2[i]
+            if item1.start != item2.start or item1.end != item2.end:
+                return False
+
+        return True
+
 
 class GFFLine:
     def __init__(self):
@@ -354,6 +370,9 @@ def Load_GFF_From_File(filename):
 
     file = open(filename, 'rU')
     for line in file:
+        # Skip comments
+        if line.startswith('#'):
+            continue
         elements = line.split('\t')
         gffline = GFFLine()
 
@@ -462,4 +481,4 @@ def Load_BED_From_File(filename):
 
 
 if __name__ == "__main__":
-	pass;
+    pass;

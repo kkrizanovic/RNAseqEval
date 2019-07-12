@@ -20,11 +20,13 @@ from report import EvalReport, ReportType
 
 # Multiprocessing stuff
 import multiprocessing
-import time
+
+# import time
 
 DISTANCE_THRESHOLD = 10000
 MIN_OVERLAP_BASES = 5
 NUM_PROCESS = 12
+NEW_ANNOTATION_MIN = 3
 
 
 # TODO: Osim broja readova koji pokrivaju pojedini gen, izracunati i coverage
@@ -49,7 +51,9 @@ paramdefs = {'-a' : 1,
              '--min_overlap' : 1,
              '-mo' : 1,
              '--graphmap' : 0,
-             '--old_bma_calc' : 0}
+             '--old_bma_calc' : 0,
+             '--leave_chrom_names': 0,
+             '--calc_new_annotations': 0}
 
 
 def cleanup():
@@ -103,10 +107,22 @@ def isGoodSplitAlignment(exonhitmap, exoncompletemap, exonstartmap, exonendmap):
     return isGood, isSpliced
 
 
-# A helper function that extracts a chromosome name from a fasta header
+# A helper function that extracts a chromosome name from a fasta header (or other similar strings)
+# Annotations and reference can use different chromosome designations, so this is used to 
+# correctly compare them
 # Chromosome names should be either chromosome [designation] or chr[designation]
 # In the case header represents a mitochondrion, 'chrM' is returned!
-def getChromName(header):
+# If there is no need for chromosome name preprocessing, then the parameter processChromNames should be set to False
+def getChromName(header, processChromNames = True):
+
+    # If chromosome names do not need to be processed, simply return unchanged argument (up to the first space)
+    if not processChromNames:
+        pos = header.find(' ')
+        if pos == -1:
+            return header
+        else:
+            return header[:pos]
+
     chromname = ''
     # regular expressions for searching for long and short chromosome names
     longre = r'(chromosome )(\w*)'
@@ -134,6 +150,9 @@ def getChromName(header):
 def load_and_process_reference(ref_file, paramdict, report):
     # Reading FASTA reference
     [headers, seqs, quals] = read_fastq(ref_file)
+    processChromNames = True
+    if '--leave_chrom_names' in paramdict:
+        processChromNames = False
 
     # Analyzing FASTA file
 
@@ -147,13 +166,13 @@ def load_and_process_reference(ref_file, paramdict, report):
 
     if len(headers) == 1:
         report.reflength = len(seqs[0])
-        chromname = getChromName(headers[0])
+        chromname = getChromName(headers[0], processChromNames)
         report.chromlengths = {chromname : report.reflength}
         chromname2seq[chromname] = 0
     else:
         for i in xrange(len(headers)):
-            header, seq = headers[i], seqs[i]
-            chromname = getChromName(header)
+            header = headers[i]
+            chromname = getChromName(header, processChromNames)
             if chromname in report.chromlengths:
                 raise Exception('\nERROR: Duplicate chromosome name: %s' % chromname)
                 # sys.stderr.write('\nERROR: Duplicate chromosome name: %s' % chromname)
@@ -205,7 +224,7 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
                 # import pdb
                 # pdb.set_trace()
                 new_sam_lines = sam_lines + new_sam_hash[origQname]
-                new_sam_hash[origQname] = sam_lines
+                new_sam_hash[origQname] = new_sam_lines
 
         sam_hash = new_sam_hash
 
@@ -357,6 +376,10 @@ def load_and_process_SAM(sam_file, paramdict, report, BBMapFormat = False):
 
 
 def load_and_process_annotations(annotations_file, paramdict, report):
+    processChromNames = True
+    if '--leave_chrom_names' in paramdict:
+        processChromNames = False
+
     # Reading annotation file
     annotations = Annotation_formats.Load_Annotation_From_File(annotations_file)
 
@@ -396,7 +419,7 @@ def load_and_process_annotations(annotations_file, paramdict, report):
             report.max_exons_per_gene = len(annotation.items)
 
         report.totalGeneLength += annotation.getLength()
-        chromname = getChromName(annotation.seqname)
+        chromname = getChromName(annotation.seqname, processChromNames)
         if chromname in report.chromlengths:
             report.chromlengths[chromname] += annotation.getLength()
         else:
@@ -436,6 +459,14 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
     allowed_inacc = Annotation_formats.DEFAULT_ALLOWED_INACCURACY       # Allowing some shift in positions
     min_overlap = Annotation_formats.DEFAULT_MINIMUM_OVERLAP            # Minimum overlap that is considered
 
+    processChromNames = True
+    if '--leave_chrom_names' in paramdict:
+        processChromNames = False
+
+    calcNewAnnotations = False
+    if '--calc_new_annotations' in paramdict:
+        calcNewAnnotations = True
+
     # Setting allowed_inaccuracy from parameters
     if '--allowed_inacc' in paramdict:
         allowed_inacc = int(paramdict['--allowed_inacc'][0])
@@ -452,6 +483,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
     expressed_genes = {}
     gene_coverage = {}
+    new_annotations = []
     for annotation in annotations:
         expressed_genes[annotation.genename] = [0 for i in xrange(len(annotation.items) + 1)]
         gene_coverage[annotation.genename] = [0 for i in xrange(len(annotation.items) + 1)]
@@ -496,7 +528,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             split = False
 
         # Assuming that all parts of the split alignment are on the same chromosome
-        chromname = getChromName(samline_list[0].rname)
+        chromname = getChromName(samline_list[0].rname, processChromNames)
         if chromname not in chromname2seq:
             raise Exception('\nERROR: Unknown chromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline_list[0].rname))
         chromidx = chromname2seq[chromname]
@@ -555,18 +587,15 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
         candidate_annotations = []
         best_match_annotation = None
         for annotation in annotations:
-            # Testing
-            #if chromname != getChromName(annotation.seqname):
-            #    sys.stderr.write('\nERROR, different chromosome name in mapping and annotation: %s / %s' % (chromname, getChromName(annotation.seqname)))
-            #if readstrand != annotation.strand:
-            #    sys.stderr.write('\nERROR, different strand in mapping and annotation: %s / %s' % (readstrand, annotation.strand))
             # If its the same chromosome, the same strand and the read and the gene overlap, then proceed with analysis
-            if chromname == getChromName(annotation.seqname) and (not check_strand or (readstrand == annotation.strand)) and annotation.overlapsGene(startpos, endpos):
+            if chromname == getChromName(annotation.seqname, processChromNames) \
+                            and (not check_strand or (readstrand == annotation.strand)) \
+                            and annotation.overlapsGene(startpos, endpos):
                 candidate_annotations.append(annotation)
 
         if len(candidate_annotations) > 1:
             # Find the best matching candidate            
-            if old_bma_calc == False:
+            if not old_bma_calc:
                 max_score = 0
                 for cannotation in candidate_annotations:
                     if cannotation.genename not in genescovered:
@@ -613,6 +642,11 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
 
         elif len(candidate_annotations) == 1:
             best_match_annotation = candidate_annotations[0]
+
+        exonhitmap = {}
+        exoncompletemap = {}
+        exonstartmap = {}
+        exonendmap = {}
 
         if best_match_annotation is not None:
             annotation = best_match_annotation      # So that I dont have to refactor the code
@@ -679,7 +713,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                             exonendmap[item_idx] = 1
 
                         exon_cnt += 1
-                        if calculate_expression == True:
+                        if calculate_expression:
                             expressed_genes[annotation.genename][item_idx] += 1
                             gene_coverage[annotation.genename][item_idx] += item.basesInside(lstartpos, lendpos)
                         exonHit = True
@@ -689,7 +723,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
                             exonPartial = True
 
                 # Checking if a partial alignment hit any exons
-                if exonhit == False and reflength > allowed_inacc:
+                if not exonhit and reflength > allowed_inacc:
                     num_misses += 1
                     # KK: Doesn't work within a separate process
                     # import pdb
@@ -733,8 +767,13 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             # KK: This should probably be included in the isGoodSplitAlignment function
             isAlmostGood = False
             if num_misses > 0:
-                if isGood == True:
+                if isGood:
                     isAlmostGood = True
+                isGood = False
+
+            #KK: If the alignment starts or ends outside annotation, classify it as not good!
+            #    This was previously incorrect
+            if (startpos < best_match_annotation.start - allowed_inacc) or (endpos > best_match_annotation.end + allowed_inacc):
                 isGood = False
 
         else:
@@ -746,6 +785,90 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             if isSpliced:
                 report.num_possible_spliced_alignment += 1
 
+                # Calculating alignment start and end
+        for samline in samline_list:
+            # start = samline.pos
+            start = samline.pos
+            reflength = samline.CalcReferenceLengthFromCigar()
+            end = start + reflength
+
+            if readrefstart == -1 or readrefstart > start:
+                readrefstart = start
+            if readrefend == -1 or readrefend < end:
+                readrefend = end
+
+        readreflength = readrefend - readrefstart
+        startpos = readrefstart
+        endpos = readrefend
+
+        # Checking for possible new annotations
+        # If the best_match_annotation does not produce a "correct" alignment, maybe it can be improved by combinig it 
+        # with other annotation from the candidate annotations set
+        # For each exon that is not correctly aligned (first exon can have misaligned beginning and last exon can have 
+        # misaligned end, other exons need to have correctly aligned beginning and end)
+        # For each exon that is not correctly aligned to the best match annotation, check another annotations to see if 
+        # it can be correctly aligned to any of them
+        # checking maps with values 0 or 1 for each exon: exonhitmap, exoncompletemap, exonstartmap, exonendmap
+        if calcNewAnnotations and best_match_annotation is not None and not isGood:
+            # Initializa new annotation
+            new_annotation = Annotation_formats.GeneDescription()
+            new_annotation.seqname = samline_list[0].qname
+            new_annotation.genename = "New annotation %d " % (len(new_annotations)+1)
+            new_annotation.source = "From: " + best_match_annotation.genename
+            new_annotation.strand = best_match_annotation.strand
+            new_annotation.items = []
+            proposeNew = False      # Determines whether we want to propose a new annotation
+
+            # Adding best match annotation exons that are before the alignment, to the new alignment
+            for aitem in best_match_annotation.items:
+                if aitem.end < startpos:
+                    new_annotation.items.append(aitem)
+            
+            # Check each partial alignment and compare it to exons in best annotation
+            for samline in samline_list:    # Find an alignment that overlaps the exon
+                lstartpos = samline.pos
+                reflength = samline.CalcReferenceLengthFromCigar()
+                lendpos = lstartpos + reflength
+                good = False
+                replacementFound = False
+                ovlitem = None
+                for aitem in best_match_annotation.items:
+                    if aitem.overlapsItem(lstartpos, lendpos):
+                        ovlitem = aitem
+                        if aitem.equalsItem(lstartpos, lendpos):
+                            good = True
+                        break
+
+                # If partial aligment doesnt perfectly match the exon
+                # Try to find a better match among other candidate annotations
+                newItem = None
+                if not good:
+                    for cannotation in candidate_annotations:
+                        for aitem in cannotation.items:
+                            if aitem.equalsItem(lstartpos, lendpos):
+                                replacementFound = True
+                                newItem = aitem
+
+                # If the replacement exon is found, place it in the new annotation, otherwise place old exon (if it exists)
+                if replacementFound:
+                    new_annotation.items.append(newItem)
+                elif ovlitem is not None:
+                    new_annotation.items.append(ovlitem)
+                    proposeNew = True
+
+            # Adding best match annotation exons that are after the alignment,to the new alignment
+            for aitem in best_match_annotation.items:
+                if aitem.start > endpos:
+                    new_annotation.items.append(aitem)
+
+            # If better exon matches have been found, propose a new annotation
+            if proposeNew:
+                new_annotations.append(new_annotation)
+
+        readreflength = readrefend - readrefstart
+        startpos = readrefstart
+        endpos = readrefend
+
         report.num_halfbases_hit = num_hithalfbases
 
         if num_misses > 0:
@@ -755,7 +878,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             report.num_good_alignment += 1
             report.contig_names.append(samline_list[0].qname)
             if isSpliced:
-            	report.num_hit_all += 1
+                report.num_hit_all += 1
         else:
             report.num_bad_alignment += 1
 
@@ -812,6 +935,7 @@ def eval_mapping_part(proc_id, samlines, annotations, paramdict, chromname2seq, 
             # else:
             #    report.num_bad_alignment += 1
 
+    report.pot_new_annotations = new_annotations
     out_q.put([report, expressed_genes, gene_coverage])
     sys.stdout.write('\nEnding process %d...\n' % proc_id)
     pass
@@ -823,6 +947,14 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
     sys.stderr.write('\n')
     sys.stderr.write('\n(%s) START: Evaluating mapping with annotations:' % datetime.now().time().isoformat())
+
+    processChromNames = True
+    if '--leave_chrom_names' in paramdict:
+        processChromNames = False
+
+    calcNewAnnotations = False
+    if '--calc_new_annotations' in paramdict:
+        calcNewAnnotations = True
 
     report = EvalReport(ReportType.MAPPING_REPORT)
     if '-ex' in paramdict or '--expression' in paramdict:
@@ -843,7 +975,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     correct_gm = False
     if '--graphmap' in paramdict:
         sys.stderr.write('\n(%s) Using option --graphmap ... ' % datetime.now().time().isoformat())        
-        correct_gm = True    
+        correct_gm = True
 
     sys.stderr.write('\n(%s) Loading and processing FASTA reference ... ' % datetime.now().time().isoformat())
     [chromname2seq, headers, seqs, quals] = load_and_process_reference(ref_file, paramdict, report)
@@ -897,7 +1029,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     percentage_bases_aligned = 0.0
 
     # Setting up some sort of a progress bar
-    if per_base_stats == True:
+    if per_base_stats:
         sys.stderr.write('\n(%s) Analyzing CIGAR strings ...  ' % datetime.now().time().isoformat())
         sys.stderr.write('\nProgress: | 1 2 3 4 5 6 7 8 9 0 |')
         sys.stderr.write('\nProgress: | ')
@@ -922,7 +1054,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
             readlength = samline_list[0].CalcReadLengthFromCigar()
             basesaligned = 0
             for samline in samline_list:
-                chromname = getChromName(samline.rname)
+                chromname = getChromName(samline.rname, processChromNames)
                 if chromname not in chromname2seq:
                     # import pdb
                     # pdb.set_trace()
@@ -931,7 +1063,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
 
                 # Testing code
                 try:
-                    if correct_gm == True and samline.flag & 16 != 0:
+                    if correct_gm and samline.flag & 16 != 0:
                         samline.pos += 1
                     cigar = samline.CalcExtendedCIGAR(seqs[chromidx])
                     pos = samline.pos
@@ -962,10 +1094,10 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                             pass
                         else:
                             sys.stderr.write('\nERROR: Invalid CIGAR string operation (%s)' % op[1])
-                except Exception, Argument:
+                except Exception, e:
                     # import pdb
                     # pdb.set_trace()
-                    sys.stderr.write('ERROR: querry/ref/pos/message = %s/%s/%d/%s \n' % (samline.qname, samline.rname, samline.pos, message))
+                    sys.stderr.write('ERROR: querry/ref/pos/message = %s/%s/%d/%s \n' % (samline.qname, samline.rname, samline.pos, e.message))
                     pass
 
             # Checking CIGAR strings for low match reads
@@ -1011,7 +1143,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
     part_annotations = {}       # A dictionarry containing a list of annotations for each part
 
     # If separating for the strand
-    if check_strand == True:
+    if check_strand:
         for chromname in chromname2seq.keys():      # Initializing
             partlist.append(chromname + '+')
             partlist.append(chromname + '-')
@@ -1026,7 +1158,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
                                                 # Due to previous processing, assuming that all
                                                 # others correspond to the same chromosome and strand
             partname = ''
-            chromname = getChromName(samline.rname)
+            chromname = getChromName(samline.rname, processChromNames)
             if samline.flag & 16 == 0:
                 readstrand = Annotation_formats.GFF_STRANDFW
                 partname = chromname + '+'
@@ -1039,7 +1171,7 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         # Separating annotations expressed genes and gene coverage
         for annotation in annotations:
             partname = ''
-            chromname = getChromName(annotation.seqname)
+            chromname = getChromName(annotation.seqname, processChromNames)
             if annotation.strand == Annotation_formats.GFF_STRANDFW:
                 partname = chromname + '+'
             else:
@@ -1059,15 +1191,25 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
             samline = samline_list[0]           # Looking only at the first samline in the list
                                                 # Due to previous processing, assuming that all
                                                 # others correspond to the same chromosome and strand
-            chromname = getChromName(samline.rname)
-            partname = chromname
-            part_samlines[partname].append(samline_list)
+            try:
+                chromname = getChromName(samline.rname, processChromNames)
+                partname = chromname
+                part_samlines[partname].append(samline_list)
+            except Exception:
+                import pdb
+                pdb.set_trace()
+
 
         # Separating annotations expressed genes and gene coverage
         for annotation in annotations:
-            chromname = getChromName(annotation.seqname)
+            chromname = getChromName(annotation.seqname, processChromNames)
             partname = chromname
-            part_annotations[partname].append(annotation)
+            try:
+                part_annotations[partname].append(annotation)
+            except Exception:
+                import pdb
+                pdb.set_trace()
+
             genename = annotation.genename
 
     # import pdb
@@ -1127,10 +1269,46 @@ def eval_mapping_annotations(ref_file, sam_file, annotations_file, paramdict):
         report.contig_names += t_report.contig_names
         report.incorr_names += t_report.incorr_names
         report.unmapped_names += t_report.unmapped_names
+        report.pot_new_annotations += t_report.pot_new_annotations
+        report.alignments_with_pna = len(report.pot_new_annotations)
 
         # Double counted!! (but since only relative values are taken into account, it's not relevant)
         # report.num_good_alignment += t_report.num_good_alignment
         # report.num_bad_alignment += t_report.num_bad_alignment
+
+    # Collecting new annotations (there should be a lot of duplicates)
+    # New annotations details are written to a file: annotations.report
+    if calcNewAnnotations:
+        collected_new_annotations = []
+        cna_count = {}
+        cna_readlist = {}
+        for pna in report.pot_new_annotations:
+            alreadyExists = False
+            for cna in collected_new_annotations:
+                if pna.itemsEqual(cna):
+                    alreadyExists = True
+                    cna.seqname += ', ' + pna.seqname
+                    cna_count[cna.genename] += 1
+                    cna_readlist[cna.genename].append(pna.seqname)
+                    break
+
+            if not alreadyExists:
+                collected_new_annotations.append(pna)
+                cna_count[pna.genename] = 0
+                cna_readlist[pna.genename] = [pna.seqname]
+
+        # Preserve only annotations that are generated by at least NEW_ANNOTATION_MIN reads
+        filtered_new_annotations = []
+        for cna in collected_new_annotations:
+            name = cna.genename
+            if cna_count[name] >= NEW_ANNOTATION_MIN:
+                filtered_new_annotations.append(cna)
+
+        report.pot_new_annotations = filtered_new_annotations
+        report.cna_count = cna_count
+        report.cna_readlist = cna_readlist
+        report.detect_new_annotations = True
+
 
     # Wait for all processes to end
     for proc in jobs:
@@ -1438,6 +1616,10 @@ def eval_mapping_fasta(ref_file, sam_file, paramdict):
     if '--no_per_base_stats' in paramdict:
         per_base_stats = False
 
+    processChromNames = True
+    if '--leave_chrom_names' in paramdict:
+        processChromNames = False
+
     if per_base_stats:
         # Looking at SAM lines to estimate general mapping quality
         for samline_list in samlines:
@@ -1454,7 +1636,7 @@ def eval_mapping_fasta(ref_file, sam_file, paramdict):
                 else:
                     report.num_zero_quality += 1
 
-                chromname = getChromName(samline.rname)
+                chromname = getChromName(samline.rname, processChromNames)
                 if chromname not in chromname2seq:
                     raise Exception('\nERROR: Unknown choromosome name in SAM file! (chromname:"%s", samline.rname:"%s")' % (chromname, samline.rname))
                 chromidx = chromname2seq[chromname]
@@ -1523,12 +1705,16 @@ def eval_mapping(ref_file, sam_file, paramdict):
             sys.stderr.write('\nInvalid parameters. Paramater --save_query_names must be used with paramters --output and -a')
             exit()
 
+    calcNewAnnotations = False
+    if '--calc_new_annotations' in paramdict:
+        calcNewAnnotations = True
+
     if '-o' in paramdict:
         out_filename = paramdict['-o'][0]
     elif '--output' in paramdict:
         out_filename = paramdict['--output'][0]
 
-    if save_qnames == True:
+    if save_qnames:
         hitone_filename = out_filename + '_hit1.names'
         hithalfbases_filename = out_filename + '_hithalfbases.names'
         contig_filename = out_filename + '_ctg.names'
@@ -1549,7 +1735,13 @@ def eval_mapping(ref_file, sam_file, paramdict):
 
     report.commandline = paramdict['command']
 
-    if save_qnames == True:
+    if calcNewAnnotations:
+        annotation_report_filename = out_filename + '_annotation.report'
+        with open(annotation_report_filename, 'w+') as annr_file:
+            annr_file.write(report.getAnnotationReport())
+            annr_file.close()
+
+    if save_qnames:
         with open(hitone_filename, 'w+') as hitone_file:
             hitone_file.write(report.get_hitone_names())
             hitone_file.close()
@@ -1817,6 +2009,8 @@ if __name__ == '__main__':
             sys.stderr.write('-ex (--expression) : calculate and output gene expression\n')
             sys.stderr.write('--no_check_strand : when matching alignments to annotations, do not take strand \n')
             sys.stderr.write('                    into account, only chromosome and position\n')
+            sys.stderr.write('--no_per_base_stats : do not calculate per-base stats, such are percentage of\n')
+            sys.stderr.write('                      matches, mismatches, inserts and deletes\n')
             sys.stderr.write('-sqn (--save_query_names) : save query names for alignments that managed to hit an exon\n')
             sys.stderr.write('                            and for contiguous alignments. Query names are saved to files\n')
             sys.stderr.write('                            with filenames determined from output file. \n')
@@ -1829,6 +2023,11 @@ if __name__ == '__main__':
             sys.stderr.write('              taken into account only when calculating the percentage of matches\n')
             sys.stderr.write('--old_bma_calc : Calculate best matching annotation only based on maximizing the number of bases an alignment\n')
             sys.stderr.write('                 on an annotation. The number of bases outside an annotation is not take into account in this case\n')
+            sys.stderr.write('--leave_chrom_names : do not preprocess chromosome names in SAM, reference and annotation files\n')
+            sys.stderr.write('                      Chromosome names are by default preprocessed to make them match the format "chr[designation]"\n')
+            sys.stderr.write('--calc_new_annotations: calculate potential new annotations, if a sufficient number of alignments (default 3)\n')
+            sys.stderr.write('                        better fits a combination of exons then any existing annotation, that combination\n')
+            sys.stderr.write('                        of exons is suggested as a new annotation\n')
             sys.stderr.write('\n')
             exit(1)
 
